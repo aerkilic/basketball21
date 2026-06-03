@@ -1,0 +1,132 @@
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'EXPO_TOKEN_CREDENTIAL_ID', defaultValue: 'EXPO_TOKEN', description: 'Jenkins Secret Text credential id for Expo token')
+    string(name: 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_CREDENTIAL_ID', defaultValue: 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_FILE', description: 'Jenkins Secret File credential id for the Google Play service account JSON key')
+    string(name: 'EAS_PROFILE', defaultValue: 'production', description: 'Android submit profile from mobile/eas.json')
+  }
+
+  environment {
+    MOBILE_DIR = 'mobile'
+    GOOGLE_SERVICE_ACCOUNT_DEST = '.secrets/google-service-account.json'
+    CI = '1'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Validate Project Structure') {
+      steps {
+        sh '''
+          test -f "${MOBILE_DIR}/package.json" || { echo "Missing file: ${MOBILE_DIR}/package.json"; exit 1; }
+          test -f "${MOBILE_DIR}/app.json" || { echo "Missing file: ${MOBILE_DIR}/app.json"; exit 1; }
+          test -f "${MOBILE_DIR}/eas.json" || { echo "Missing file: ${MOBILE_DIR}/eas.json"; exit 1; }
+        '''
+      }
+    }
+
+    stage('Install Node Dependencies') {
+      steps {
+        dir("${env.MOBILE_DIR}") {
+          sh '''
+            node --version
+            npm --version
+
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('Install EAS CLI') {
+      steps {
+        sh '''
+          npm install -g eas-cli
+          eas --version
+        '''
+      }
+    }
+
+    stage('Materialize Google Service Account Key') {
+      steps {
+        script {
+          if (!params.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_CREDENTIAL_ID?.trim()) {
+            error('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_CREDENTIAL_ID is empty.')
+          }
+          withCredentials([file(credentialsId: params.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_CREDENTIAL_ID.trim(), variable: 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_FILE')]) {
+            dir("${env.MOBILE_DIR}") {
+              sh '''
+                if [ ! -f "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_FILE" ]; then
+                  echo "Google Play service account JSON file is missing."
+                  exit 1
+                fi
+
+                mkdir -p .secrets
+                cp "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_FILE" "${GOOGLE_SERVICE_ACCOUNT_DEST}"
+                chmod 600 "${GOOGLE_SERVICE_ACCOUNT_DEST}" || true
+                test -f "${GOOGLE_SERVICE_ACCOUNT_DEST}" || { echo "Failed to materialize ${GOOGLE_SERVICE_ACCOUNT_DEST}"; exit 1; }
+                echo "Google Play service account JSON prepared at ${GOOGLE_SERVICE_ACCOUNT_DEST}."
+              '''
+            }
+          }
+        }
+      }
+    }
+
+    stage('Validate Android Submit Profile') {
+      steps {
+        dir("${env.MOBILE_DIR}") {
+          sh '''
+            node -e "const fs=require('fs');const profile=(process.env.EAS_PROFILE||'production').trim();const p='eas.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));const submit=j?.submit?.[profile]?.android;if(!submit){console.error('Missing Android submit profile: '+profile);process.exit(1)}const keyPath=(submit.serviceAccountKeyPath||'').trim();if(keyPath!=='./.secrets/google-service-account.json'){console.error('Unexpected serviceAccountKeyPath for profile '+profile+': '+keyPath);process.exit(1)}console.log('Android submit profile is configured for profile:', profile, 'track:', submit.track || '<default>');"
+          '''
+        }
+      }
+    }
+
+    stage('EAS Submit Android') {
+      steps {
+        dir("${env.MOBILE_DIR}") {
+          script {
+            if (!params.EXPO_TOKEN_CREDENTIAL_ID?.trim()) {
+              error('EXPO_TOKEN_CREDENTIAL_ID is empty.')
+            }
+            withCredentials([string(credentialsId: params.EXPO_TOKEN_CREDENTIAL_ID.trim(), variable: 'EXPO_TOKEN')]) {
+              sh '''
+                if [ -z "$EXPO_TOKEN" ]; then
+                  echo "EXPO_TOKEN is missing."
+                  exit 1
+                fi
+
+                echo "Submitting latest successful Android build using Expo/EAS-managed credentials..."
+                eas submit --platform android --profile "${EAS_PROFILE}" --latest --non-interactive
+              '''
+            }
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo 'Android submit pipeline finished successfully.'
+    }
+    failure {
+      echo 'Android submit pipeline failed. Check Jenkins logs.'
+    }
+    always {
+      sh '''
+        rm -rf ~/.npm/_cacache/tmp || true
+      '''
+    }
+  }
+}

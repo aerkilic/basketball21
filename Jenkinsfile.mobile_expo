@@ -1,0 +1,168 @@
+pipeline {
+  agent any
+
+  parameters {
+    booleanParam(name: 'RUN_EXPO_DOCTOR', defaultValue: true, description: 'Run expo checks before build')
+    string(name: 'EXPO_ENVIRONMENT', defaultValue: 'production', description: 'EAS environment name')
+    string(name: 'EXPO_TOKEN_CREDENTIAL_ID', defaultValue: 'EXPO_TOKEN', description: 'Jenkins Secret Text credential id for Expo token')
+    string(name: 'EAS_PROFILE', defaultValue: 'production', description: 'EAS build profile from mobile/eas.json')
+    choice(name: 'PLATFORM', choices: ['ios', 'android', 'all'], description: 'Platform to build')
+  }
+
+  environment {
+    MOBILE_DIR = 'mobile'
+    EAS_BUILD_NO_EXPO_GO_WARNING = 'true'
+    CI = '1'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Validate Project Structure') {
+      steps {
+        sh '''
+          test -f "${MOBILE_DIR}/package.json" || { echo "Missing file: ${MOBILE_DIR}/package.json"; exit 1; }
+          test -f "${MOBILE_DIR}/app.json" || { echo "Missing file: ${MOBILE_DIR}/app.json"; exit 1; }
+          test -f "${MOBILE_DIR}/eas.json" || { echo "Missing file: ${MOBILE_DIR}/eas.json"; exit 1; }
+        '''
+      }
+    }
+
+    stage('Install Node Dependencies') {
+      steps {
+        dir("${env.MOBILE_DIR}") {
+          sh '''
+            node --version
+            npm --version
+
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('Install EAS CLI') {
+      steps {
+        sh '''
+          npm install -g eas-cli
+          eas --version
+        '''
+      }
+    }
+
+    stage('Validate EXPO_TOKEN') {
+      steps {
+        script {
+          if (!params.EXPO_TOKEN_CREDENTIAL_ID?.trim()) {
+            error('EXPO_TOKEN_CREDENTIAL_ID is empty. Please provide a Jenkins Secret Text credential id (for example: EXPO_TOKEN).')
+          }
+          withCredentials([string(credentialsId: params.EXPO_TOKEN_CREDENTIAL_ID.trim(), variable: 'EXPO_TOKEN')]) {
+            sh '''
+              if [ -z "$EXPO_TOKEN" ]; then
+                echo "EXPO_TOKEN is missing. Aborting build."
+                exit 1
+              fi
+              echo "EXPO_TOKEN credential loaded."
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Expo Checks (optional)') {
+      when {
+        expression { return params.RUN_EXPO_DOCTOR }
+      }
+      steps {
+        dir("${env.MOBILE_DIR}") {
+          script {
+            withCredentials([string(credentialsId: params.EXPO_TOKEN_CREDENTIAL_ID.trim(), variable: 'EXPO_TOKEN')]) {
+              sh '''
+                set +e
+                npx expo install --check
+                EXPO_INSTALL_CHECK_EXIT=$?
+                npx expo-doctor
+                EXPO_DOCTOR_EXIT=$?
+                set -e
+
+                if [ "$EXPO_INSTALL_CHECK_EXIT" -ne 0 ] || [ "$EXPO_DOCTOR_EXIT" -ne 0 ]; then
+                  echo "Expo checks reported issues (install-check=$EXPO_INSTALL_CHECK_EXIT, doctor=$EXPO_DOCTOR_EXIT)."
+                  echo "Continuing pipeline because expo checks are non-blocking in this pipeline."
+                else
+                  echo "Expo checks passed."
+                fi
+              '''
+            }
+          }
+        }
+      }
+    }
+
+    stage('EAS Build') {
+      steps {
+        dir("${env.MOBILE_DIR}") {
+          script {
+            withCredentials([string(credentialsId: params.EXPO_TOKEN_CREDENTIAL_ID.trim(), variable: 'EXPO_TOKEN')]) {
+              sh '''
+                EAS_ENV_SUPPORTED=0
+                if eas build --help 2>/dev/null | grep -q -- "--environment"; then
+                  EAS_ENV_SUPPORTED=1
+                  echo "eas-cli supports --environment. Using EXPO_ENVIRONMENT=${EXPO_ENVIRONMENT}."
+                else
+                  echo "eas-cli does not support --environment. Building without this flag."
+                fi
+
+                if [ "$PLATFORM" = "ios" ]; then
+                  if [ "$EAS_ENV_SUPPORTED" -eq 1 ]; then
+                    eas build --platform ios --profile "${EAS_PROFILE}" --environment "${EXPO_ENVIRONMENT}" --non-interactive --wait
+                  else
+                    eas build --platform ios --profile "${EAS_PROFILE}" --non-interactive --wait
+                  fi
+                elif [ "$PLATFORM" = "android" ]; then
+                  if [ "$EAS_ENV_SUPPORTED" -eq 1 ]; then
+                    eas build --platform android --profile "${EAS_PROFILE}" --environment "${EXPO_ENVIRONMENT}" --non-interactive --wait
+                  else
+                    eas build --platform android --profile "${EAS_PROFILE}" --non-interactive --wait
+                  fi
+                elif [ "$PLATFORM" = "all" ]; then
+                  if [ "$EAS_ENV_SUPPORTED" -eq 1 ]; then
+                    eas build --platform ios --profile "${EAS_PROFILE}" --environment "${EXPO_ENVIRONMENT}" --non-interactive --wait
+                    eas build --platform android --profile "${EAS_PROFILE}" --environment "${EXPO_ENVIRONMENT}" --non-interactive --wait
+                  else
+                    eas build --platform ios --profile "${EAS_PROFILE}" --non-interactive --wait
+                    eas build --platform android --profile "${EAS_PROFILE}" --non-interactive --wait
+                  fi
+                else
+                  echo "Unsupported PLATFORM: $PLATFORM"
+                  exit 1
+                fi
+              '''
+            }
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo 'EAS build pipeline finished successfully.'
+    }
+    failure {
+      echo 'EAS build pipeline failed. Check Jenkins logs.'
+    }
+    always {
+      sh '''
+        rm -rf ~/.npm/_cacache/tmp || true
+      '''
+    }
+  }
+}

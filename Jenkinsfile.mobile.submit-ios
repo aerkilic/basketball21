@@ -1,0 +1,107 @@
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'EXPO_TOKEN_CREDENTIAL_ID', defaultValue: 'EXPO_TOKEN', description: 'Jenkins Secret Text credential id for Expo token')
+    string(name: 'ASC_APP_ID', defaultValue: '', description: 'Optional App Store Connect app id. If set, it is injected into mobile/eas.json for this run.')
+    string(name: 'EAS_PROFILE', defaultValue: 'production', description: 'EAS submit profile from mobile/eas.json')
+  }
+
+  environment {
+    MOBILE_DIR = 'mobile'
+    CI = '1'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Validate Project Structure') {
+      steps {
+        sh '''
+          test -f "${MOBILE_DIR}/package.json" || { echo "Missing file: ${MOBILE_DIR}/package.json"; exit 1; }
+          test -f "${MOBILE_DIR}/app.json" || { echo "Missing file: ${MOBILE_DIR}/app.json"; exit 1; }
+          test -f "${MOBILE_DIR}/eas.json" || { echo "Missing file: ${MOBILE_DIR}/eas.json"; exit 1; }
+        '''
+      }
+    }
+
+    stage('Install Node Dependencies') {
+      steps {
+        dir("${env.MOBILE_DIR}") {
+          sh '''
+            node --version
+            npm --version
+
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('Install EAS CLI') {
+      steps {
+        sh '''
+          npm install -g eas-cli
+          eas --version
+        '''
+      }
+    }
+
+    stage('Prepare Submit Profile') {
+      steps {
+        dir("${env.MOBILE_DIR}") {
+          script {
+            sh '''
+              node -e "const fs=require('fs');const profile=(process.env.EAS_PROFILE||'production').trim();const p='eas.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.submit=j.submit||{};j.submit[profile]=j.submit[profile]||{};j.submit[profile].ios=j.submit[profile].ios||{};const fromParam=(process.env.ASC_APP_ID||'').trim();if(fromParam){j.submit[profile].ios.ascAppId=fromParam;fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');console.log('ascAppId injected from Jenkins parameter for profile:', profile)}const id=(j.submit[profile].ios.ascAppId||'').trim();if(!id||id==='HIER_ASC_APP_ID_EINTRAGEN'){console.error('Missing ascAppId for profile '+profile+'. Set ASC_APP_ID parameter or mobile/eas.json -> submit.'+profile+'.ios.ascAppId.');process.exit(1)}console.log('ascAppId is configured for profile:', profile)"
+            '''
+          }
+        }
+      }
+    }
+
+    stage('EAS Submit iOS') {
+      steps {
+        dir("${env.MOBILE_DIR}") {
+          script {
+            if (!params.EXPO_TOKEN_CREDENTIAL_ID?.trim()) {
+              error('EXPO_TOKEN_CREDENTIAL_ID is empty.')
+            }
+            withCredentials([string(credentialsId: params.EXPO_TOKEN_CREDENTIAL_ID.trim(), variable: 'EXPO_TOKEN')]) {
+              sh '''
+                if [ -z "$EXPO_TOKEN" ]; then
+                  echo "EXPO_TOKEN is missing."
+                  exit 1
+                fi
+
+                echo "Submitting latest successful iOS build using Expo/EAS-managed credentials..."
+                eas submit --platform ios --profile "${EAS_PROFILE}" --latest --non-interactive
+              '''
+            }
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo 'iOS submit pipeline finished successfully.'
+    }
+    failure {
+      echo 'iOS submit pipeline failed. Check Jenkins logs.'
+    }
+    always {
+      sh '''
+        rm -rf ~/.npm/_cacache/tmp || true
+      '''
+    }
+  }
+}

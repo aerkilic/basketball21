@@ -1,0 +1,47 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Django Backend",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/manage.py",
+      "args": [
+        "runserver",
+        "0.0.0.0:8000"
+      ],
+      "django": true,
+      "justMyCode": true,
+      "envFile": "${workspaceFolder}/backend/.env"
+    },
+    {
+      "name": "React Frontend",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend/src"
+    },
+    {
+      "name": "Mobile / Expo (Hinweis)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/mobile/node_modules/.bin/expo",
+      "args": [
+        "start"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Backend + Frontend",
+      "configurations": [
+        "Django Backend",
+        "React Frontend"
+      ]
+    }
+  ]
+}

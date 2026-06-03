@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install Backend",
+      "type": "shell",
+      "command": "cd backend && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt"
+    },
+    {
+      "label": "Install Frontend",
+      "type": "shell",
+      "command": "cd frontend && npm install --include=dev"
+    },
+    {
+      "label": "Install Mobile",
+      "type": "shell",
+      "command": "cd mobile && npm install --include=dev"
+    },
+    {
+      "label": "Start Backend",
+      "type": "shell",
+      "command": "./scripts/start_backend.sh"
+    },
+    {
+      "label": "Start Frontend",
+      "type": "shell",
+      "command": "./scripts/start_frontend.sh"
+    },
+    {
+      "label": "Start Mobile",
+      "type": "shell",
+      "command": "./scripts/start_mobile.sh"
+    },
+    {
+      "label": "Docker Compose Up",
+      "type": "shell",
+      "command": "docker compose -f deploy/docker-compose.yml up -d"
+    }
+  ]
+}

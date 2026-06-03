@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ${DOCKER_SERVICE_PREFIX:-project}_postgres
+    env_file:
+      - ../backend/.env
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    profiles: ["backend"]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: ${BACKEND_SERVICE_NAME:-project-backend}
+    env_file:
+      - ../backend/.env
+    environment:
+      POSTGRES_HOST: postgres
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
