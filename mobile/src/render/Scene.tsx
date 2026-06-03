@@ -1,0 +1,143 @@
+// Scene: lights + all 3D objects, plus the central Stepper that advances the
+// simulation, drives the broadcast camera and fires audio/HUD updates.
+import React, { useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+import { Simulation } from "../game/Simulation";
+import { Court } from "./Court";
+import { Hoop } from "./Hoop";
+import { BallMesh } from "./BallMesh";
+import { PlayerFigure } from "./PlayerFigure";
+import { Fans } from "./Fans";
+import { Sound, SfxName } from "../audio/SoundManager";
+import { GameEvent } from "../game/types";
+
+export interface HudSnapshot {
+  scoreUser: number;
+  scoreCpu: number;
+  foulUser: number;
+  foulCpu: number;
+  phase: string;
+  possession: string;
+  winner: string | null;
+  draw: boolean;
+  mode: string;
+  scoreTarget: number;
+  clock: number;
+  userName: string;
+  cpuName: string;
+  homeIsUser: boolean;
+  messages: string[];
+}
+
+const EVENT_SFX: Partial<Record<GameEvent["type"], SfxName>> = {
+  swish: "swish",
+  rimhit: "rimhit",
+  dunk: "dunk",
+  block: "block",
+  steal: "steal",
+  pass: "pass",
+  dribble: "dribble",
+  shoot: "shoot",
+  whistle: "whistle",
+  foul: "whistle",
+  cheer: "cheer",
+  buzzer: "buzzer",
+};
+
+function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => void }) {
+  const { camera } = useThree();
+  const lastHud = useRef("");
+  const camTarget = useRef(new THREE.Vector3());
+
+  useFrame((_, dtRaw) => {
+    if (sim.paused) return; // frozen — no step, no audio, no camera move
+    sim.step(dtRaw);
+    const g = sim.state;
+
+    // ---- audio ----
+    for (const e of g.events) {
+      const sfx = EVENT_SFX[e.type];
+      if (!sfx) continue;
+      let vol = e.type === "dribble" ? 0.5 : 1;
+      if (e.data?.crowd) vol = e.data?.soft ? 0.35 : 0.5; // crowd ambience softer
+      Sound.play(sfx, vol);
+    }
+
+    // ---- broadcast camera: frames the upper (in-bounds) half, pans with action ----
+    const b = g.ball.pos;
+    const tx = THREE.MathUtils.clamp(b.x * 0.6, -4.5, 4.5);
+    const tz = THREE.MathUtils.clamp(b.z, -6, 1);
+    const shake = g.shake;
+    const sx = (Math.random() - 0.5) * shake * 0.6;
+    const sy = (Math.random() - 0.5) * shake * 0.6;
+
+    const desiredX = tx * 0.4 + sx;
+    const desiredY = 8.6 + sy;
+    const desiredZ = tz * 0.35 + 6.8;
+    camera.position.x += (desiredX - camera.position.x) * 0.08;
+    camera.position.y += (desiredY - camera.position.y) * 0.08;
+    camera.position.z += (desiredZ - camera.position.z) * 0.08;
+
+    camTarget.current.set(
+      camTarget.current.x + (tx * 0.7 - camTarget.current.x) * 0.08,
+      1.2,
+      camTarget.current.z + (tz * 0.4 - 3.2 - camTarget.current.z) * 0.08
+    );
+    camera.lookAt(camTarget.current);
+
+    // ---- HUD push (throttled by change) ----
+    const snap: HudSnapshot = {
+      scoreUser: g.score.USER,
+      scoreCpu: g.score.CPU,
+      foulUser: g.fouls.USER,
+      foulCpu: g.fouls.CPU,
+      phase: g.phase,
+      possession: g.possession,
+      winner: g.winner,
+      draw: g.draw,
+      mode: g.mode,
+      scoreTarget: g.scoreTarget,
+      clock: Math.ceil(g.clock),
+      userName: g.userName,
+      cpuName: g.cpuName,
+      homeIsUser: g.homeIsUser,
+      messages: g.messages.map((m) => m.text),
+    };
+    const key = JSON.stringify(snap);
+    if (key !== lastHud.current) {
+      lastHud.current = key;
+      onHud(snap);
+    }
+  });
+
+  return null;
+}
+
+export function Scene({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => void }) {
+  return (
+    <>
+      <Stepper sim={sim} onHud={onHud} />
+
+      <ambientLight intensity={0.65} />
+      <hemisphereLight args={["#bcd4ff", "#3a3326", 0.6]} />
+      <directionalLight
+        position={[6, 14, 6]}
+        intensity={1.15}
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+      />
+
+      <fog attach="fog" args={["#1f2530", 22, 46]} />
+
+      <Court />
+      <Fans sim={sim} />
+      <Hoop sim={sim} />
+      <BallMesh sim={sim} />
+      {sim.state.players.map((_, i) => (
+        <PlayerFigure key={i} sim={sim} index={i} />
+      ))}
+    </>
+  );
+}

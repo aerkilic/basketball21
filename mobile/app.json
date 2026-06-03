@@ -3,27 +3,41 @@
     "name": "basketball21",
     "slug": "basketball21",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "landscape",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#f2f6fc"
+      "backgroundColor": "#0b1018"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.basketball21"
+      "bundleIdentifier": "app.smartwaiter.basketball21",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.example.basketball21"
+      "package": "app.smartwaiter.basketball21"
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9c7f34cd-5ffb-44b0-9d28-c1ad3f215206"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9c7f34cd-5ffb-44b0-9d28-c1ad3f215206"
     }
   }
 }
