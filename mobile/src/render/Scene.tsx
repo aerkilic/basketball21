@@ -16,6 +16,7 @@ import { CappadociaScene } from "./CappadociaBackdrop";
 import { NoviSadScene } from "./NoviSadBackdrop";
 import { BeachScene } from "./BeachBackdrop";
 import { ErciyesScene } from "./ErciyesBackdrop";
+import { PetrovaradinScene } from "./PetrovaradinBackdrop";
 
 export interface HudSnapshot {
   scoreUser: number;
@@ -85,7 +86,8 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
       g.backdrop === "cappadocia" ||
       g.backdrop === "novisad" ||
       g.backdrop === "beach" ||
-      g.backdrop === "erciyes";
+      g.backdrop === "erciyes" ||
+      g.backdrop === "petrovaradin";
 
     const desiredX = tx * 0.4 + sx;
     const desiredY = (outdoor ? 7.0 : 8.6) + sy;
@@ -143,7 +145,8 @@ export function Scene({
   const novisad = backdrop === "novisad";
   const beach = backdrop === "beach";
   const erciyes = backdrop === "erciyes";
-  const outdoor = cappadocia || novisad || beach || erciyes;
+  const petrovaradin = backdrop === "petrovaradin";
+  const outdoor = cappadocia || novisad || beach || erciyes || petrovaradin;
   return (
     <>
       <Stepper sim={sim} onHud={onHud} />
@@ -160,6 +163,8 @@ export function Scene({
             ? ["#dff1ff", "#d8c79a", 0.9]
             : erciyes
             ? ["#e8f5ff", "#cdd6dc", 0.9]
+            : petrovaradin
+            ? ["#d8ecf8", "#8b876f", 0.88]
             : ["#bcd4ff", "#3a3326", 0.6]
         }
       />
@@ -173,9 +178,21 @@ export function Scene({
             ? [8, 15, -6]
             : erciyes
             ? [-8, 15, -10]
+            : petrovaradin
+            ? [-10, 14, -4]
             : [6, 14, 6]
         }
-        color={cappadocia ? "#ffdca8" : beach ? "#fff4e0" : erciyes ? "#eef8ff" : "#ffffff"}
+        color={
+          cappadocia
+            ? "#ffdca8"
+            : beach
+            ? "#fff4e0"
+            : erciyes
+            ? "#eef8ff"
+            : petrovaradin
+            ? "#f2ead8"
+            : "#ffffff"
+        }
         intensity={outdoor ? 1.1 : 1.15}
         castShadow
         shadow-mapSize-width={1024}
@@ -189,6 +206,7 @@ export function Scene({
       {novisad && <NoviSadScene />}
       {beach && <BeachScene />}
       {erciyes && <ErciyesScene />}
+      {petrovaradin && <PetrovaradinScene />}
 
       <Court backdrop={backdrop} />
       <Fans sim={sim} backdrop={backdrop} />

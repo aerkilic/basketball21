@@ -5,6 +5,7 @@ import { CappadociaGround } from "./CappadociaBackdrop";
 import { NoviSadGround } from "./NoviSadBackdrop";
 import { BeachGround } from "./BeachBackdrop";
 import { ErciyesGround } from "./ErciyesBackdrop";
+import { PetrovaradinGround } from "./PetrovaradinBackdrop";
 
 const LINE = "#f1f5f9";
 const Y = 0.02;
@@ -49,6 +50,8 @@ export function Court({ backdrop = "classic" }: { backdrop?: BackdropKind }) {
         <BeachGround />
       ) : backdrop === "erciyes" ? (
         <ErciyesGround />
+      ) : backdrop === "petrovaradin" ? (
+        <PetrovaradinGround />
       ) : (
         <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[60, 60]} />
