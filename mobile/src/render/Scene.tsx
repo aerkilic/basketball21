@@ -55,8 +55,8 @@ const EVENT_SFX: Partial<Record<GameEvent["type"], SfxName>> = {
 };
 
 const CAMERA_BACK_OFFSET = 0.6;
-const OUTDOOR_CAMERA_TARGET_Y = 2.6;
-const OUTDOOR_FOV = 66; // wider lens outdoors so the whole court fits
+const OUTDOOR_CAMERA_TARGET_Y = 2.0; // look mostly at the court, a little sky above
+const OUTDOOR_FOV = 60; // slightly wider than indoors, but not zoomed far out
 const INDOOR_FOV = 56;
 
 function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => void }) {
@@ -106,8 +106,9 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
     }
 
     const desiredX = tx * 0.4 + sx;
-    const desiredY = (outdoor ? 7.8 : 8.6) + sy;
-    const desiredZ = tz * 0.35 + (outdoor ? 10.5 : 6.8) + CAMERA_BACK_OFFSET;
+    // outdoor: a touch higher (slight bird's-eye) and close, not pulled far back
+    const desiredY = (outdoor ? 9.0 : 8.6) + sy;
+    const desiredZ = tz * 0.35 + (outdoor ? 7.2 : 6.8) + CAMERA_BACK_OFFSET;
     camera.position.x += (desiredX - camera.position.x) * 0.08;
     camera.position.y += (desiredY - camera.position.y) * 0.08;
     camera.position.z += (desiredZ - camera.position.z) * 0.08;
