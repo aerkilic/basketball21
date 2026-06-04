@@ -34,6 +34,7 @@ import {
 import { Controls } from "./src/ui/Controls";
 import { Hud } from "./src/ui/Hud";
 import { StartScreen } from "./src/ui/StartScreen";
+import { IntroScreen } from "./src/ui/IntroScreen";
 import { SetupScreen } from "./src/ui/SetupScreen";
 import { LoadingScreen } from "./src/ui/LoadingScreen";
 import { GameOverScreen } from "./src/ui/GameOverScreen";
@@ -64,6 +65,7 @@ const EMPTY_HUD: HudSnapshot = {
 };
 
 type Screen =
+  | "intro"
   | "start"
   | "setup"
   | "loading"
@@ -73,7 +75,7 @@ type Screen =
   | "tournament";
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("start");
+  const [screen, setScreen] = useState<Screen>("intro");
   const [hud, setHud] = useState<HudSnapshot>(EMPTY_HUD);
   const [foulsEnabled, setFoulsEnabled] = useState(true);
   const [paused, setPaused] = useState(false);
@@ -249,6 +251,8 @@ export default function App() {
     <I18nProvider>
     <GestureHandlerRootView style={styles.root}>
       <StatusBar hidden />
+
+      {screen === "intro" && <IntroScreen onDone={() => setScreen("start")} />}
 
       {screen === "start" && (
         <StartScreen
