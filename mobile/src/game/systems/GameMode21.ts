@@ -102,7 +102,11 @@ function advancePhase(g: GameState, dt: number) {
   if (g.mode === "time" && g.phase === "LIVE") {
     g.clock = Math.max(0, g.clock - dt);
     if (g.clock <= 0) {
-      const w = g.score.USER === g.score.CPU ? null : g.score.USER > g.score.CPU ? "USER" : "CPU";
+      let w: TeamId | null = g.score.USER === g.score.CPU ? null : g.score.USER > g.score.CPU ? "USER" : "CPU";
+      if (!w && g.forceWinner) {
+        w = g.lastScorer ?? g.possession;
+        g.score[w] += 1;
+      }
       endGame(g, w);
       return;
     }

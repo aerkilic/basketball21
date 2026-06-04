@@ -10,6 +10,7 @@ import { GameState } from "./src/game/types";
 import {
   Tournament,
   Profile,
+  TournamentRules,
   createTournament,
   getPlayerFixture,
   matchConfigFor,
@@ -145,8 +146,8 @@ export default function App() {
   }, []);
 
   const startTournament = useCallback(
-    async (profile: Profile, leagueId: string) => {
-      const t = createTournament(profile, leagueId);
+    async (profile: Profile, leagueId: string, rules: TournamentRules) => {
+      const t = createTournament(profile, leagueId, rules);
       const list = await upsertTournament(t, tournaments); // trims to 5, drops oldest
       setTournaments(list);
       setTour(t);
@@ -306,6 +307,7 @@ function configFromState(s: GameState): MatchConfig {
     mode: s.mode,
     scoreTarget: s.scoreTarget,
     timeLimit: s.timeLimit,
+    forceWinner: s.forceWinner ?? false,
     userTeam: {
       players: [s.players[0].stats.kind, s.players[1].stats.kind] as [PlayerKind, PlayerKind],
       jersey: s.players[0].jersey,

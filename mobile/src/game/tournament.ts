@@ -2,7 +2,7 @@
 // randomly into two groups (A & B), single round-robin, top 2 of each advance to
 // cross semifinals + final. Points: win = 2, loss = 1; ties broken by basket
 // difference (scored − conceded), then baskets scored.
-import { MatchConfig, PlayerKind } from "./constants";
+import { GameMode, MatchConfig, PlayerKind, SCORE_OPTIONS, TIME_OPTIONS } from "./constants";
 import { backdropForTeam } from "./cityBackgrounds";
 
 export type GroupKey = "A" | "B";
@@ -106,10 +106,34 @@ export interface Profile {
   teamId: string;
 }
 
+export interface TournamentRules {
+  mode: GameMode;
+  scoreTarget: number;
+  timeLimit: number;
+}
+
+export const DEFAULT_TOURNAMENT_RULES: TournamentRules = {
+  mode: "score",
+  scoreTarget: 21,
+  timeLimit: 10 * 60,
+};
+
+export function normalizeTournamentRules(r?: Partial<TournamentRules>): TournamentRules {
+  const mode: GameMode = r?.mode === "time" ? "time" : "score";
+  const scoreTarget =
+    typeof r?.scoreTarget === "number" && SCORE_OPTIONS.includes(r.scoreTarget)
+      ? r.scoreTarget
+      : DEFAULT_TOURNAMENT_RULES.scoreTarget;
+  const minutes = typeof r?.timeLimit === "number" ? Math.round(r.timeLimit / 60) : 0;
+  const timeLimit = TIME_OPTIONS.includes(minutes) ? minutes * 60 : DEFAULT_TOURNAMENT_RULES.timeLimit;
+  return { mode, scoreTarget, timeLimit };
+}
+
 export interface Tournament {
   id: string; // unique save-slot id
   updatedAt: number; // last time this tournament was created/played (for slot ordering)
   leagueId: string;
+  rules?: TournamentRules; // optional only so legacy saves can be migrated safely
   groups: { A: string[]; B: string[] }; // random draw of team ids per group
   rounds: number; // number of group-stage rounds
   profile: Profile;
@@ -118,6 +142,10 @@ export interface Tournament {
   fixtures: Fixture[]; // group stage
   knockouts: Fixture[]; // SF + final
   championId: string | null;
+}
+
+export function tournamentRules(t: Pick<Tournament, "rules">): TournamentRules {
+  return normalizeTournamentRules(t.rules);
 }
 
 // ---- helpers ----
@@ -173,7 +201,11 @@ function genGroupFixtures(group: GroupKey, ids: string[]): Fixture[] {
   return out;
 }
 
-export function createTournament(profile: Profile, leagueId: string): Tournament {
+export function createTournament(
+  profile: Profile,
+  leagueId: string,
+  rules: TournamentRules = DEFAULT_TOURNAMENT_RULES
+): Tournament {
   fxId = 0;
   const league = leagueById(leagueId);
   const ids = shuffle(league.teams.map((t) => t.id));
@@ -186,6 +218,7 @@ export function createTournament(profile: Profile, leagueId: string): Tournament
     id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     updatedAt: Date.now(),
     leagueId: league.id,
+    rules: normalizeTournamentRules(rules),
     groups: { A, B },
     rounds,
     profile,
@@ -235,16 +268,37 @@ export function groupStandings(t: Tournament, group: GroupKey): StandRow[] {
 }
 
 // ---- AI-vs-AI result ----
-function simFixture(f: Fixture) {
+function scoreModeLoserScore(target: number): number {
+  const floor = Math.max(0, Math.floor(target * 0.45));
+  const ceil = Math.max(floor, target - 1);
+  return floor + Math.floor(Math.random() * (ceil - floor + 1));
+}
+
+function timeModeScores(homeWins: boolean, rules: TournamentRules): { homeScore: number; awayScore: number } {
+  const minutes = Math.max(1, rules.timeLimit / 60);
+  const base = Math.max(8, Math.round(minutes * 2.4 + 2));
+  const margin = 1 + Math.floor(Math.random() * Math.max(3, Math.round(minutes * 0.9)));
+  const lower = Math.max(2, base + Math.floor(Math.random() * 7) - 3);
+  const winner = lower + margin;
+  return homeWins ? { homeScore: winner, awayScore: lower } : { homeScore: lower, awayScore: winner };
+}
+
+function simFixture(f: Fixture, rules: TournamentRules) {
   const home = teamById(f.home);
   const away = teamById(f.away);
   const hs = home.strength + 0.06; // home advantage
   const p = Math.max(0.22, Math.min(0.78, hs / (hs + away.strength)));
   const homeWins = Math.random() < p;
-  const margin = 2 + Math.floor(Math.random() * 13); // 2..14
-  const lose = Math.max(7, 21 - margin);
-  f.homeScore = homeWins ? 21 : lose;
-  f.awayScore = homeWins ? lose : 21;
+  if (rules.mode === "time") {
+    const score = timeModeScores(homeWins, rules);
+    f.homeScore = score.homeScore;
+    f.awayScore = score.awayScore;
+  } else {
+    const target = rules.scoreTarget;
+    const lose = scoreModeLoserScore(target);
+    f.homeScore = homeWins ? target : lose;
+    f.awayScore = homeWins ? lose : target;
+  }
   f.played = true;
 }
 
@@ -266,7 +320,8 @@ export function getPlayerFixture(t: Tournament): Fixture | null {
 // Simulate the remaining games of the current group round (used after the player's
 // own game, and for rounds where the player has a bye).
 function simRound(t: Tournament, round: number) {
-  for (const f of t.fixtures) if (f.round === round && !f.played) simFixture(f);
+  const rules = tournamentRules(t);
+  for (const f of t.fixtures) if (f.round === round && !f.played) simFixture(f, rules);
 }
 
 // Advance through any group rounds where the player has a bye; enter the knockouts
@@ -320,10 +375,10 @@ function enterKnockouts(t: Tournament) {
     return;
   }
   // player didn't qualify — auto-play the whole bracket
-  t.knockouts.forEach((f) => !f.played && simFixture(f));
+  t.knockouts.forEach((f) => !f.played && simFixture(f, tournamentRules(t)));
   buildFinal(t);
   const fin = t.knockouts.find((f) => f.stage === "FINAL")!;
-  if (!fin.played) simFixture(fin);
+  if (!fin.played) simFixture(fin, tournamentRules(t));
   setChampion(t);
 }
 
@@ -353,13 +408,13 @@ function resolveAfter(t: Tournament) {
       enterKnockouts(t);
     }
   } else if (t.phase === "SF") {
-    for (const f of t.knockouts) if (f.stage === "SF" && !f.played) simFixture(f);
+    for (const f of t.knockouts) if (f.stage === "SF" && !f.played) simFixture(f, tournamentRules(t));
     buildFinal(t);
     const fin = t.knockouts.find((f) => f.stage === "FINAL")!;
     if (involvesPlayer(t, fin) && !fin.played) {
       t.phase = "FINAL";
     } else {
-      if (!fin.played) simFixture(fin);
+      if (!fin.played) simFixture(fin, tournamentRules(t));
       setChampion(t);
     }
   } else if (t.phase === "FINAL") {
@@ -374,13 +429,15 @@ export function matchConfigFor(t: Tournament, f: Fixture): MatchConfig {
   const oppId = f.home === meId ? f.away : f.home;
   const opp = teamById(oppId);
   const homeIsUser = f.home === meId;
+  const rules = tournamentRules(t);
   return {
     difficulty: "NORMAL",
     fouls: true,
     backdrop: backdropForTeam(f.home),
-    mode: "score",
-    scoreTarget: 21,
-    timeLimit: 600,
+    mode: rules.mode,
+    scoreTarget: rules.scoreTarget,
+    timeLimit: rules.timeLimit,
+    forceWinner: rules.mode === "time",
     userTeam: { players: me.players, jersey: me.color },
     cpuTeam: { players: opp.players, jersey: opp.color },
     // show the player's nickname (with their club) on the scoreboard

@@ -194,6 +194,7 @@ export interface MatchConfig {
   mode: GameMode;
   scoreTarget: number; // used in "score" mode
   timeLimit: number; // seconds, used in "time" mode
+  forceWinner?: boolean; // timed tournament games use a tie-break so every fixture has a winner
   userTeam: TeamConfig;
   cpuTeam: TeamConfig;
   // optional context (tournament matches): team names + which side is the home team

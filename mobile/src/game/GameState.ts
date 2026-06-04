@@ -94,6 +94,7 @@ export function createGameState(config: MatchConfig): GameState {
     mode: config.mode,
     scoreTarget: config.scoreTarget,
     timeLimit: config.timeLimit,
+    forceWinner: config.forceWinner ?? false,
     clock: config.timeLimit,
     shotClock: SHOT_CLOCK,
     userName: config.userName ?? "DU",

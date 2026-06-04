@@ -6,6 +6,7 @@ import {
   groupStandings,
   getPlayerFixture,
   teamById,
+  tournamentRules,
   StandRow,
   Fixture,
   GroupKey,
@@ -28,6 +29,11 @@ export function TournamentScreen({
   const { t: tr } = useI18n();
   const me = t.profile.teamId;
   const next = getPlayerFixture(t);
+  const rules = tournamentRules(t);
+  const ruleText =
+    rules.mode === "time"
+      ? tr("setup.minSuffix", { m: Math.round(rules.timeLimit / 60) })
+      : tr("hud.target", { n: rules.scoreTarget });
   const sf = t.knockouts.filter((f) => f.stage === "SF");
   const fin = t.knockouts.find((f) => f.stage === "FINAL");
 
@@ -68,6 +74,7 @@ export function TournamentScreen({
         <Text style={styles.you}>
           {t.profile.nickname} · {teamById(me).city}
         </Text>
+        <Text style={styles.rule}>{ruleText}</Text>
 
         {/* Next match / result */}
         {t.phase === "DONE" ? (
@@ -186,7 +193,8 @@ const styles = StyleSheet.create({
   back: { paddingVertical: 6 },
   backText: { color: "#93c5fd", fontSize: 14, fontWeight: "700" },
   title: { color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: 2 },
-  you: { color: "#9ca3af", fontSize: 13, textAlign: "center", marginTop: 2, marginBottom: 12 },
+  you: { color: "#9ca3af", fontSize: 13, textAlign: "center", marginTop: 2, marginBottom: 4 },
+  rule: { color: "#fbbf24", fontSize: 12, fontWeight: "800", textAlign: "center", marginBottom: 12 },
   nextCard: {
     backgroundColor: "rgba(239,68,68,0.12)",
     borderWidth: 1,

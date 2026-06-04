@@ -2,7 +2,7 @@
 // tournaments (up to 5) to continue, plus a button to start a new one.
 import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
-import { Tournament, teamById } from "../game/tournament";
+import { Tournament, teamById, tournamentRules } from "../game/tournament";
 import { MAX_TOURNAMENTS } from "../game/storage";
 import { useMenuInsets } from "./layout";
 import { useI18n, TFunc } from "../i18n";
@@ -14,6 +14,12 @@ function statusLabel(t: Tournament, tr: TFunc): string {
   if (t.phase === "SF") return tr("tour.semifinal");
   if (t.phase === "FINAL") return tr("tour.final");
   return tr("tour.groupPhase", { r: t.round, n: t.rounds });
+}
+
+function ruleLabel(t: Tournament, tr: TFunc): string {
+  const rules = tournamentRules(t);
+  if (rules.mode === "time") return tr("setup.minSuffix", { m: Math.round(rules.timeLimit / 60) });
+  return tr("hud.target", { n: rules.scoreTarget });
 }
 
 export function CareerHubScreen({
@@ -52,7 +58,7 @@ export function CareerHubScreen({
                 <Text style={styles.cardName} numberOfLines={1}>
                   {t.profile.nickname} · {teamById(t.profile.teamId).city}
                 </Text>
-                <Text style={styles.cardStatus}>{statusLabel(t, tr)}</Text>
+                <Text style={styles.cardStatus}>{statusLabel(t, tr)} · {ruleLabel(t, tr)}</Text>
               </View>
               <Text style={styles.continue}>{tr("hub.continue")} ›</Text>
             </Pressable>

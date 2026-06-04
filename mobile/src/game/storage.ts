@@ -1,7 +1,7 @@
 // Persistence: save / load an in-progress match, plus tournament slots.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GameState } from "./types";
-import { Tournament } from "./tournament";
+import { Tournament, normalizeTournamentRules } from "./tournament";
 
 const KEY = "bb21_savegame_v1";
 const T_KEY = "bb21_tournament_v1"; // legacy single-tournament slot (migrated on load)
@@ -63,6 +63,7 @@ function withId(t: Tournament): Tournament {
     ...t,
     id: t.id ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     updatedAt: t.updatedAt ?? Date.now(),
+    rules: normalizeTournamentRules(t.rules),
   };
 }
 

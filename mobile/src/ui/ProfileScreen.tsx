@@ -1,19 +1,38 @@
 // ProfileScreen: enter a nickname and pick your club for a new tournament.
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from "react-native";
-import { Profile, LEAGUE_IDS, LEAGUES, leagueForLang } from "../game/tournament";
+import { GameMode, SCORE_OPTIONS, TIME_OPTIONS } from "../game/constants";
+import {
+  DEFAULT_TOURNAMENT_RULES,
+  Profile,
+  LEAGUE_IDS,
+  LEAGUES,
+  TournamentRules,
+  leagueForLang,
+} from "../game/tournament";
 import { useMenuInsets } from "./layout";
 import { useI18n } from "../i18n";
+
+function OptionChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={[styles.leagueChip, active && styles.leagueChipActive]}>
+      <Text style={[styles.leagueChipText, active && styles.leagueChipTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
 
 export function ProfileScreen({
   onStart,
   onBack,
 }: {
-  onStart: (p: Profile, leagueId: string) => void;
+  onStart: (p: Profile, leagueId: string, rules: TournamentRules) => void;
   onBack: () => void;
 }) {
   const [nick, setNick] = useState("");
   const { t, lang } = useI18n();
+  const [mode, setMode] = useState<GameMode>(DEFAULT_TOURNAMENT_RULES.mode);
+  const [score, setScore] = useState(DEFAULT_TOURNAMENT_RULES.scoreTarget);
+  const [minutes, setMinutes] = useState(Math.round(DEFAULT_TOURNAMENT_RULES.timeLimit / 60));
   const [leagueId, setLeagueId] = useState(() => leagueForLang(lang).id);
   const [teamId, setTeamId] = useState<string | null>(null);
   const pad = useMenuInsets();
@@ -48,6 +67,37 @@ export function ProfileScreen({
           maxLength={14}
         />
 
+        <Text style={styles.section}>{t("setup.mode")}</Text>
+        <View style={styles.leagueRow}>
+          <OptionChip label={t("setup.points")} active={mode === "score"} onPress={() => setMode("score")} />
+          <OptionChip label={t("setup.time")} active={mode === "time"} onPress={() => setMode("time")} />
+        </View>
+
+        {mode === "score" ? (
+          <>
+            <Text style={styles.section}>{t("setup.toPoints")}</Text>
+            <View style={styles.leagueRow}>
+              {SCORE_OPTIONS.map((s) => (
+                <OptionChip key={s} label={`${s}`} active={score === s} onPress={() => setScore(s)} />
+              ))}
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.section}>{t("setup.playTime")}</Text>
+            <View style={styles.leagueRow}>
+              {TIME_OPTIONS.map((m) => (
+                <OptionChip
+                  key={m}
+                  label={t("setup.minSuffix", { m })}
+                  active={minutes === m}
+                  onPress={() => setMinutes(m)}
+                />
+              ))}
+            </View>
+          </>
+        )}
+
         <Text style={styles.section}>{t("profile.league")}</Text>
         <View style={styles.leagueRow}>
           {LEAGUE_IDS.map((id) => (
@@ -80,7 +130,13 @@ export function ProfileScreen({
         <Pressable
           style={[styles.play, !ready && styles.playOff]}
           disabled={!ready}
-          onPress={() => onStart({ nickname: nick.trim(), teamId: teamId! }, league.id)}
+          onPress={() =>
+            onStart(
+              { nickname: nick.trim(), teamId: teamId! },
+              league.id,
+              { mode, scoreTarget: score, timeLimit: minutes * 60 }
+            )
+          }
         >
           <Text style={styles.playText}>{t("profile.start")}</Text>
         </Pressable>

@@ -141,6 +141,7 @@ export interface GameState {
   mode: "score" | "time";
   scoreTarget: number;
   timeLimit: number; // seconds (time mode)
+  forceWinner: boolean; // if a timed match is level, break the tie at the buzzer
   clock: number; // remaining seconds (time mode), counts down during LIVE
   shotClock: number; // remaining seconds on the 24s shot clock (per possession)
   // team identity / home crowd
