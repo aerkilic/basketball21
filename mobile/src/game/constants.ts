@@ -143,7 +143,44 @@ export const TRAVEL_DIST = 2.5; // ~3 steps gathered without shooting = travelin
 export type GameMode = "score" | "time";
 
 // Background scenery the match is played in.
-export type BackdropKind = "classic" | "cappadocia" | "novisad" | "beach" | "erciyes" | "petrovaradin";
+export type SpecialBackdropKind =
+  | "classic"
+  | "cappadocia"
+  | "novisad"
+  | "beach"
+  | "erciyes"
+  | "petrovaradin";
+
+export type CityBackdropKind =
+  | "munichMarienplatz"
+  | "stuttgartPalace"
+  | "frankfurtSkyline"
+  | "nurembergCastle"
+  | "hamburgHarbor"
+  | "berlinGate"
+  | "cologneCathedral"
+  | "bremenTownHall"
+  | "istanbulBosphorus"
+  | "istanbulGalata"
+  | "istanbulDolmabahce"
+  | "trabzonSumela"
+  | "ankaraAtakule"
+  | "bursaUludag"
+  | "konyaMevlana"
+  | "izmirClockTower"
+  | "belgradeKalemegdan"
+  | "nisFortress"
+  | "kragujevacMemorial"
+  | "noviPazarOldTown"
+  | "suboticaTownHall"
+  | "kyivMaidan"
+  | "lvivOpera"
+  | "dniproRiver"
+  | "donetskArena"
+  | "uzhhorodBlossom"
+  | "odesaPotemkin";
+
+export type BackdropKind = SpecialBackdropKind | CityBackdropKind;
 
 export interface TeamConfig {
   players: [PlayerKind, PlayerKind];

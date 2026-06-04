@@ -2,7 +2,8 @@
 // randomly into two groups (A & B), single round-robin, top 2 of each advance to
 // cross semifinals + final. Points: win = 2, loss = 1; ties broken by basket
 // difference (scored − conceded), then baskets scored.
-import { MatchConfig, PlayerKind, BackdropKind } from "./constants";
+import { MatchConfig, PlayerKind } from "./constants";
+import { backdropForTeam } from "./cityBackgrounds";
 
 export type GroupKey = "A" | "B";
 export type Stage = "GROUP" | "SF" | "FINAL";
@@ -104,10 +105,6 @@ export interface Profile {
   nickname: string;
   teamId: string;
 }
-
-// stadium/backdrop is drawn at random for every tournament match
-const BACKDROPS: BackdropKind[] = ["classic", "cappadocia", "novisad", "beach", "erciyes", "petrovaradin"];
-const randomBackdrop = (): BackdropKind => BACKDROPS[Math.floor(Math.random() * BACKDROPS.length)];
 
 export interface Tournament {
   id: string; // unique save-slot id
@@ -380,7 +377,7 @@ export function matchConfigFor(t: Tournament, f: Fixture): MatchConfig {
   return {
     difficulty: "NORMAL",
     fouls: true,
-    backdrop: randomBackdrop(), // random stadium each tournament match
+    backdrop: backdropForTeam(f.home),
     mode: "score",
     scoreTarget: 21,
     timeLimit: 600,

@@ -12,11 +12,13 @@ import { Fans } from "./Fans";
 import { Sound, SfxName } from "../audio/SoundManager";
 import { GameEvent } from "../game/types";
 import { BackdropKind } from "../game/constants";
+import { cityBackdropById } from "../game/cityBackgrounds";
 import { CappadociaScene } from "./CappadociaBackdrop";
 import { NoviSadScene } from "./NoviSadBackdrop";
 import { BeachScene } from "./BeachBackdrop";
 import { ErciyesScene } from "./ErciyesBackdrop";
 import { PetrovaradinScene } from "./PetrovaradinBackdrop";
+import { CityBackdropScene } from "./CityBackdrop";
 
 export interface HudSnapshot {
   scoreUser: number;
@@ -87,7 +89,8 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
       g.backdrop === "novisad" ||
       g.backdrop === "beach" ||
       g.backdrop === "erciyes" ||
-      g.backdrop === "petrovaradin";
+      g.backdrop === "petrovaradin" ||
+      !!cityBackdropById(g.backdrop);
 
     const desiredX = tx * 0.4 + sx;
     const desiredY = (outdoor ? 7.0 : 8.6) + sy;
@@ -146,7 +149,8 @@ export function Scene({
   const beach = backdrop === "beach";
   const erciyes = backdrop === "erciyes";
   const petrovaradin = backdrop === "petrovaradin";
-  const outdoor = cappadocia || novisad || beach || erciyes || petrovaradin;
+  const cityBackdrop = cityBackdropById(backdrop);
+  const outdoor = cappadocia || novisad || beach || erciyes || petrovaradin || !!cityBackdrop;
   return (
     <>
       <Stepper sim={sim} onHud={onHud} />
@@ -165,6 +169,8 @@ export function Scene({
             ? ["#e8f5ff", "#cdd6dc", 0.9]
             : petrovaradin
             ? ["#d8ecf8", "#8b876f", 0.88]
+            : cityBackdrop
+            ? [cityBackdrop.hemiSky ?? "#d9eefb", cityBackdrop.hemiGround ?? "#8b8068", 0.88]
             : ["#bcd4ff", "#3a3326", 0.6]
         }
       />
@@ -180,6 +186,8 @@ export function Scene({
             ? [-8, 15, -10]
             : petrovaradin
             ? [-10, 14, -4]
+            : cityBackdrop
+            ? cityBackdrop.sunPosition ?? [-8, 14, -6]
             : [6, 14, 6]
         }
         color={
@@ -191,6 +199,8 @@ export function Scene({
             ? "#eef8ff"
             : petrovaradin
             ? "#f2ead8"
+            : cityBackdrop
+            ? cityBackdrop.sunColor ?? "#fff3d8"
             : "#ffffff"
         }
         intensity={outdoor ? 1.1 : 1.15}
@@ -207,6 +217,7 @@ export function Scene({
       {beach && <BeachScene />}
       {erciyes && <ErciyesScene />}
       {petrovaradin && <PetrovaradinScene />}
+      {cityBackdrop && <CityBackdropScene backdrop={cityBackdrop} />}
 
       <Court backdrop={backdrop} />
       <Fans sim={sim} backdrop={backdrop} />

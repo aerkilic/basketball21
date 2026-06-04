@@ -1,11 +1,13 @@
 // Court: the rubber street court, painted lines, and a bit of schoolyard scenery.
 import React from "react";
 import { COURT, HOOP, THREE_POINT_DIST, BackdropKind } from "../game/constants";
+import { cityBackdropById } from "../game/cityBackgrounds";
 import { CappadociaGround } from "./CappadociaBackdrop";
 import { NoviSadGround } from "./NoviSadBackdrop";
 import { BeachGround } from "./BeachBackdrop";
 import { ErciyesGround } from "./ErciyesBackdrop";
 import { PetrovaradinGround } from "./PetrovaradinBackdrop";
+import { CityBackdropGround } from "./CityBackdrop";
 
 const LINE = "#f1f5f9";
 const Y = 0.02;
@@ -38,6 +40,7 @@ export function Court({ backdrop = "classic" }: { backdrop?: BackdropKind }) {
   const courtLen = COURT.zFront - COURT.zBack;
   const courtMidZ = (COURT.zFront + COURT.zBack) / 2;
   const basketZ = HOOP.rim.z;
+  const cityBackdrop = cityBackdropById(backdrop);
 
   return (
     <group>
@@ -52,6 +55,8 @@ export function Court({ backdrop = "classic" }: { backdrop?: BackdropKind }) {
         <ErciyesGround />
       ) : backdrop === "petrovaradin" ? (
         <PetrovaradinGround />
+      ) : cityBackdrop ? (
+        <CityBackdropGround backdrop={cityBackdrop} />
       ) : (
         <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[60, 60]} />

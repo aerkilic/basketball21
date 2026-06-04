@@ -5,11 +5,15 @@ import { HudSnapshot } from "../render/Scene";
 import { useI18n, TFunc } from "../i18n";
 
 // localize an in-game message, resolving team codes in {by}/{to}/{who} params
-function renderMessage(t: TFunc, m: { key: string; params?: Record<string, string | number> }): string {
+function renderMessage(
+  t: TFunc,
+  hud: HudSnapshot,
+  m: { key: string; params?: Record<string, string | number> }
+): string {
   const p: Record<string, string | number> = { ...(m.params ?? {}) };
   for (const k of ["by", "to", "who"]) {
-    if (p[k] === "USER") p[k] = t("team.you");
-    else if (p[k] === "CPU") p[k] = t("team.cpu");
+    if (p[k] === "USER") p[k] = hud.userName;
+    else if (p[k] === "CPU") p[k] = hud.cpuName;
   }
   return t(m.key, p);
 }
@@ -31,7 +35,7 @@ export function Hud({ hud, foulsEnabled }: { hud: HudSnapshot; foulsEnabled: boo
         <View style={styles.msgSide}>
           {hud.messages[0] ? (
             <View style={styles.msgWrap}>
-              <Text style={styles.msg}>{renderMessage(t, hud.messages[0])}</Text>
+              <Text style={styles.msg}>{renderMessage(t, hud, hud.messages[0])}</Text>
             </View>
           ) : null}
         </View>

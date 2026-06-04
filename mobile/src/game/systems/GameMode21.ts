@@ -93,7 +93,8 @@ function endGame(g: GameState, winner: TeamId | null) {
   g.draw = winner === null;
   g.events.push({ type: "buzzer" });
   if (winner === null) pushMessage(g, "msg.draw", 5);
-  else pushMessage(g, winner === "USER" ? "msg.youWin" : "msg.cpuWins", 5);
+  else if (winner === "USER") pushMessage(g, "msg.youWin", 5);
+  else pushMessage(g, "msg.teamWins", 5, { who: winner });
 }
 
 function advancePhase(g: GameState, dt: number) {

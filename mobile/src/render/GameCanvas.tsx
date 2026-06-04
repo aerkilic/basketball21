@@ -4,6 +4,7 @@ import React from "react";
 import { Canvas } from "@react-three/fiber/native";
 import { Simulation } from "../game/Simulation";
 import { BackdropKind } from "../game/constants";
+import { cityBackdropById } from "../game/cityBackgrounds";
 import { Scene, HudSnapshot } from "./Scene";
 
 const GAME_CAMERA_FOV = 56;
@@ -18,8 +19,10 @@ export function GameCanvas({
   onHud: (s: HudSnapshot) => void;
   backdrop?: BackdropKind;
 }) {
+  const cityBackdrop = cityBackdropById(backdrop);
   const sky =
-    backdrop === "cappadocia"
+    cityBackdrop?.sky ??
+    (backdrop === "cappadocia"
       ? "#dce6ec"
       : backdrop === "novisad"
       ? "#9ec6e6"
@@ -29,7 +32,7 @@ export function GameCanvas({
       ? "#c8dceb"
       : backdrop === "petrovaradin"
       ? "#b8d4e6"
-      : "#1f2530";
+      : "#1f2530");
   return (
     <Canvas
       shadows

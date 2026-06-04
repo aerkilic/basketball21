@@ -6,6 +6,7 @@ import {
   Difficulty,
   GameMode,
   BackdropKind,
+  SpecialBackdropKind,
   MatchConfig,
   DEFAULT_CONFIG,
   JERSEYS,
@@ -13,6 +14,8 @@ import {
   TIME_OPTIONS,
   TEAM_PRESETS,
 } from "../game/constants";
+import { backdropForTeam } from "../game/cityBackgrounds";
+import { LEAGUE_IDS, LEAGUES, Team, leagueForLang } from "../game/tournament";
 import { useMenuInsets } from "./layout";
 import { useI18n } from "../i18n";
 
@@ -23,6 +26,17 @@ const DESC_KEY: Record<string, string> = {
   Speed: "teamdesc.speed",
   Allround: "teamdesc.allround",
 };
+
+const SPECIAL_BACKDROPS: SpecialBackdropKind[] = [
+  "classic",
+  "cappadocia",
+  "novisad",
+  "beach",
+  "erciyes",
+  "petrovaradin",
+];
+
+type BackdropSelection = "auto" | SpecialBackdropKind;
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -52,24 +66,36 @@ export function SetupScreen({
   const [score, setScore] = useState(DEFAULT_CONFIG.scoreTarget);
   const [minutes, setMinutes] = useState(10);
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_CONFIG.difficulty);
-  const [backdrop, setBackdrop] = useState<BackdropKind>(DEFAULT_CONFIG.backdrop);
+  const { t, lang } = useI18n();
+  const [opponentLeagueId, setOpponentLeagueId] = useState(() => leagueForLang(lang).id);
+  const [opponentTeamId, setOpponentTeamId] = useState(() => leagueForLang(lang).teams[0].id);
+  const [backdrop, setBackdrop] = useState<BackdropSelection>("auto");
   const [userTeam, setUserTeam] = useState(0);
-  const [cpuTeam, setCpuTeam] = useState(3);
   const [userJersey, setUserJersey] = useState(DEFAULT_CONFIG.userTeam.jersey);
-  const [cpuJersey, setCpuJersey] = useState(DEFAULT_CONFIG.cpuTeam.jersey);
   const pad = useMenuInsets();
-  const { t } = useI18n();
+  const opponentLeague = LEAGUES[opponentLeagueId] ?? leagueForLang(lang);
+  const opponent = opponentLeague.teams.find((team) => team.id === opponentTeamId) ?? opponentLeague.teams[0];
+
+  const selectOpponentLeague = (id: string) => {
+    const league = LEAGUES[id] ?? opponentLeague;
+    setOpponentLeagueId(league.id);
+    setOpponentTeamId(league.teams[0].id);
+  };
 
   const start = () => {
+    const opponentBackdrop: BackdropKind = backdrop === "auto" ? backdropForTeam(opponent.id) : backdrop;
     const cfg: MatchConfig = {
       difficulty,
       fouls: true,
-      backdrop,
+      backdrop: opponentBackdrop,
       mode,
       scoreTarget: mode === "score" ? score : 21,
       timeLimit: mode === "time" ? minutes * 60 : DEFAULT_CONFIG.timeLimit,
       userTeam: { players: TEAM_PRESETS[userTeam].players, jersey: userJersey },
-      cpuTeam: { players: TEAM_PRESETS[cpuTeam].players, jersey: cpuJersey },
+      cpuTeam: { players: opponent.players, jersey: opponent.color },
+      userName: t("team.you"),
+      cpuName: opponent.city,
+      homeIsUser: false,
     };
     onStart(cfg);
   };
@@ -128,16 +154,6 @@ export function SetupScreen({
           ))}
         </View>
 
-        <Text style={styles.section}>{t("setup.backdrop")}</Text>
-        <View style={styles.row}>
-          <Chip label={t("backdrop.classic")} active={backdrop === "classic"} onPress={() => setBackdrop("classic")} />
-          <Chip label={t("backdrop.cappadocia")} active={backdrop === "cappadocia"} onPress={() => setBackdrop("cappadocia")} />
-          <Chip label={t("backdrop.novisad")} active={backdrop === "novisad"} onPress={() => setBackdrop("novisad")} />
-          <Chip label={t("backdrop.beach")} active={backdrop === "beach"} onPress={() => setBackdrop("beach")} />
-          <Chip label={t("backdrop.erciyes")} active={backdrop === "erciyes"} onPress={() => setBackdrop("erciyes")} />
-          <Chip label={t("backdrop.petrovaradin")} active={backdrop === "petrovaradin"} onPress={() => setBackdrop("petrovaradin")} />
-        </View>
-
         <Text style={styles.section}>{t("setup.yourTeam")}</Text>
         <View style={styles.teamRow}>
           {TEAM_PRESETS.map((preset, i) => (
@@ -164,26 +180,42 @@ export function SetupScreen({
         </View>
 
         <Text style={styles.section}>{t("setup.opponent")}</Text>
+        <Text style={styles.label}>{t("setup.opponentCountry")}</Text>
+        <View style={styles.row}>
+          {LEAGUE_IDS.map((id) => (
+            <Chip
+              key={id}
+              label={t(`league.${id}`)}
+              active={opponentLeague.id === id}
+              onPress={() => selectOpponentLeague(id)}
+            />
+          ))}
+        </View>
+        <Text style={styles.label}>{t("setup.opponentTeam")}</Text>
         <View style={styles.teamRow}>
-          {TEAM_PRESETS.map((preset, i) => (
+          {opponentLeague.teams.map((team: Team) => (
             <Pressable
-              key={preset.name}
-              onPress={() => setCpuTeam(i)}
-              style={[styles.teamCard, cpuTeam === i && styles.teamCardActive]}
+              key={team.id}
+              onPress={() => setOpponentTeamId(team.id)}
+              style={[styles.teamCard, opponent.id === team.id && styles.teamCardActive]}
             >
-              <Text style={[styles.teamName, cpuTeam === i && styles.teamNameActive]}>{preset.name}</Text>
-              <Text style={styles.teamDesc}>{t(DESC_KEY[preset.name] ?? "")}</Text>
+              <View style={styles.teamTitleRow}>
+                <View style={[styles.miniSwatch, { backgroundColor: team.color }]} />
+                <Text style={[styles.teamName, opponent.id === team.id && styles.teamNameActive]}>{team.city}</Text>
+              </View>
             </Pressable>
           ))}
         </View>
-        <Text style={styles.label}>{t("setup.opponentJersey")}</Text>
+
+        <Text style={styles.section}>{t("setup.backdrop")}</Text>
         <View style={styles.row}>
-          {JERSEYS.map((j) => (
-            <Swatch
-              key={j.color}
-              color={j.color}
-              active={cpuJersey === j.color}
-              onPress={() => setCpuJersey(j.color)}
+          <Chip label={t("setup.autoBackdrop")} active={backdrop === "auto"} onPress={() => setBackdrop("auto")} />
+          {SPECIAL_BACKDROPS.map((kind) => (
+            <Chip
+              key={kind}
+              label={t(`backdrop.${kind}`)}
+              active={backdrop === kind}
+              onPress={() => setBackdrop(kind)}
             />
           ))}
         </View>
@@ -228,6 +260,8 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   teamCardActive: { borderColor: "#fbbf24", backgroundColor: "rgba(251,191,36,0.14)" },
+  teamTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  miniSwatch: { width: 16, height: 16, borderRadius: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
   teamName: { color: "#e5e7eb", fontWeight: "900", fontSize: 15 },
   teamNameActive: { color: "#fbbf24" },
   teamDesc: { color: "#9ca3af", fontSize: 11, marginTop: 2 },
