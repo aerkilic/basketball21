@@ -5,7 +5,7 @@ import React, { useMemo, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { Simulation } from "../game/Simulation";
-import { COURT } from "../game/constants";
+import { COURT, BackdropKind } from "../game/constants";
 
 interface FanDef {
   x: number;
@@ -20,7 +20,10 @@ interface FanDef {
 
 const SKIN = "#c89a6a";
 
-export function Fans({ sim }: { sim: Simulation }) {
+export function Fans({ sim, backdrop = "classic" }: { sim: Simulation; backdrop?: BackdropKind }) {
+  // on the beach the crowd sits only on the left/right stands so the sea is open
+  const sideOnly = backdrop === "beach";
+  const slabColor = backdrop === "beach" ? "#b98a52" : "#374151";
   const bodies = useRef<THREE.InstancedMesh>(null);
   const heads = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -40,9 +43,13 @@ export function Fans({ sim }: { sim: Simulation }) {
         riseThreshold: 0.15 + Math.random() * 0.7, // some pop up early, some never quite
         stand: 0,
       });
-    for (let r = 0; r < 3; r++) {
-      for (let x = -7; x <= 7; x += 1.4) add(x, COURT.zBack - 1.0 - r * 1.1);
+    // rows behind the hoop (skipped on the beach so the sea stays visible)
+    if (!sideOnly) {
+      for (let r = 0; r < 3; r++) {
+        for (let x = -7; x <= 7; x += 1.4) add(x, COURT.zBack - 1.0 - r * 1.1);
+      }
     }
+    // left + right stands (always)
     for (let r = 0; r < 2; r++) {
       for (let z = COURT.zBack; z <= COURT.zFront; z += 1.7) {
         add(-COURT.halfWidth - 1.0 - r * 1.0, z);
@@ -50,7 +57,7 @@ export function Fans({ sim }: { sim: Simulation }) {
       }
     }
     return out;
-  }, []);
+  }, [sideOnly]);
 
   const count = fans.length;
 
@@ -110,18 +117,20 @@ export function Fans({ sim }: { sim: Simulation }) {
 
   return (
     <group>
-      {/* bleacher slabs */}
-      <mesh position={[0, 0.2, COURT.zBack - 2.0]}>
-        <boxGeometry args={[16, 0.4, 3.6]} />
-        <meshStandardMaterial color="#374151" roughness={1} />
-      </mesh>
+      {/* bleacher slabs — back slab dropped on the beach so the sea stays open */}
+      {!sideOnly && (
+        <mesh position={[0, 0.2, COURT.zBack - 2.0]}>
+          <boxGeometry args={[16, 0.4, 3.6]} />
+          <meshStandardMaterial color={slabColor} roughness={1} />
+        </mesh>
+      )}
       <mesh position={[-COURT.halfWidth - 1.6, 0.2, (COURT.zBack + COURT.zFront) / 2]}>
         <boxGeometry args={[2.4, 0.4, COURT.zFront - COURT.zBack]} />
-        <meshStandardMaterial color="#374151" roughness={1} />
+        <meshStandardMaterial color={slabColor} roughness={1} />
       </mesh>
       <mesh position={[COURT.halfWidth + 1.6, 0.2, (COURT.zBack + COURT.zFront) / 2]}>
         <boxGeometry args={[2.4, 0.4, COURT.zFront - COURT.zBack]} />
-        <meshStandardMaterial color="#374151" roughness={1} />
+        <meshStandardMaterial color={slabColor} roughness={1} />
       </mesh>
 
       <instancedMesh ref={bodies} args={[undefined, undefined, count]}>

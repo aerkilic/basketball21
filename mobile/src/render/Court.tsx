@@ -3,6 +3,7 @@ import React from "react";
 import { COURT, HOOP, THREE_POINT_DIST, BackdropKind } from "../game/constants";
 import { CappadociaGround } from "./CappadociaBackdrop";
 import { NoviSadGround } from "./NoviSadBackdrop";
+import { BeachGround } from "./BeachBackdrop";
 
 const LINE = "#f1f5f9";
 const Y = 0.02;
@@ -43,6 +44,8 @@ export function Court({ backdrop = "classic" }: { backdrop?: BackdropKind }) {
         <CappadociaGround />
       ) : backdrop === "novisad" ? (
         <NoviSadGround />
+      ) : backdrop === "beach" ? (
+        <BeachGround />
       ) : (
         <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[60, 60]} />

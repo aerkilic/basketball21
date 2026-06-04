@@ -14,6 +14,7 @@ import { GameEvent } from "../game/types";
 import { BackdropKind } from "../game/constants";
 import { CappadociaScene } from "./CappadociaBackdrop";
 import { NoviSadScene } from "./NoviSadBackdrop";
+import { BeachScene } from "./BeachBackdrop";
 
 export interface HudSnapshot {
   scoreUser: number;
@@ -75,16 +76,21 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
     const sx = (Math.random() - 0.5) * shake * 0.6;
     const sy = (Math.random() - 0.5) * shake * 0.6;
 
+    // outdoor backdrops tilt the camera up a bit so the horizon/scenery is in view
+    const outdoor =
+      g.backdrop === "cappadocia" || g.backdrop === "novisad" || g.backdrop === "beach";
+
     const desiredX = tx * 0.4 + sx;
-    const desiredY = 8.6 + sy;
-    const desiredZ = tz * 0.35 + 6.8;
+    const desiredY = (outdoor ? 7.0 : 8.6) + sy;
+    const desiredZ = tz * 0.35 + (outdoor ? 8.0 : 6.8);
     camera.position.x += (desiredX - camera.position.x) * 0.08;
     camera.position.y += (desiredY - camera.position.y) * 0.08;
     camera.position.z += (desiredZ - camera.position.z) * 0.08;
 
+    const targetY = outdoor ? 4.0 : 1.2; // look higher outdoors to reveal the background
     camTarget.current.set(
       camTarget.current.x + (tx * 0.7 - camTarget.current.x) * 0.08,
-      1.2,
+      camTarget.current.y + (targetY - camTarget.current.y) * 0.08,
       camTarget.current.z + (tz * 0.4 - 3.2 - camTarget.current.z) * 0.08
     );
     camera.lookAt(camTarget.current);
@@ -128,26 +134,29 @@ export function Scene({
 }) {
   const cappadocia = backdrop === "cappadocia";
   const novisad = backdrop === "novisad";
-  const outdoor = cappadocia || novisad;
+  const beach = backdrop === "beach";
+  const outdoor = cappadocia || novisad || beach;
   return (
     <>
       <Stepper sim={sim} onHud={onHud} />
 
-      {/* warm sunrise for Cappadocia, bright daylight for Novi Sad, cool arena light otherwise */}
-      <ambientLight intensity={outdoor ? 0.9 : 0.65} />
+      {/* warm sunrise (Cappadocia), bright seaside daylight (Novi Sad / beach), cool arena otherwise */}
+      <ambientLight intensity={outdoor ? 0.95 : 0.65} />
       <hemisphereLight
         args={
           cappadocia
             ? ["#ffe6c4", "#b59a73", 0.8]
             : novisad
             ? ["#cfe3f2", "#5f6b4f", 0.85]
+            : beach
+            ? ["#dff1ff", "#d8c79a", 0.9]
             : ["#bcd4ff", "#3a3326", 0.6]
         }
       />
       <directionalLight
-        position={cappadocia ? [10, 10, -16] : novisad ? [-12, 16, 4] : [6, 14, 6]}
-        color={cappadocia ? "#ffdca8" : "#ffffff"}
-        intensity={outdoor ? 1.05 : 1.15}
+        position={cappadocia ? [10, 10, -16] : novisad ? [-12, 16, 4] : beach ? [8, 15, -6] : [6, 14, 6]}
+        color={cappadocia ? "#ffdca8" : beach ? "#fff4e0" : "#ffffff"}
+        intensity={outdoor ? 1.1 : 1.15}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
@@ -158,9 +167,10 @@ export function Scene({
 
       {cappadocia && <CappadociaScene />}
       {novisad && <NoviSadScene />}
+      {beach && <BeachScene />}
 
       <Court backdrop={backdrop} />
-      <Fans sim={sim} />
+      <Fans sim={sim} backdrop={backdrop} />
       <Hoop sim={sim} />
       <BallMesh sim={sim} />
       {sim.state.players.map((_, i) => (

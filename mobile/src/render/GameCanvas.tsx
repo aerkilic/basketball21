@@ -16,7 +16,13 @@ export function GameCanvas({
   backdrop?: BackdropKind;
 }) {
   const sky =
-    backdrop === "cappadocia" ? "#dce6ec" : backdrop === "novisad" ? "#9ec6e6" : "#1f2530";
+    backdrop === "cappadocia"
+      ? "#dce6ec"
+      : backdrop === "novisad"
+      ? "#9ec6e6"
+      : backdrop === "beach"
+      ? "#7fc4e8"
+      : "#1f2530";
   return (
     <Canvas
       shadows

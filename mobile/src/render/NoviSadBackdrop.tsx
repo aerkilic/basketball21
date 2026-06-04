@@ -6,11 +6,11 @@ import * as THREE from "three";
 import { COURT } from "../game/constants";
 
 const BANK_Z = -11; // where the quay meets the water
-const BRIDGE_Z = -19; // distance of the bridge across the river (closer = more visible)
-const DECK_Y = 6.5;
+const BRIDGE_Z = -24; // distance of the bridge across the river
+const DECK_Y = 5; // deck height above the water
 const PYLON_X = 14;
-const PYLON_TOP = 26;
-const DECK_LEN = 96;
+const PYLON_TOP = 15; // mast top — kept in frame for the tilted outdoor camera
+const DECK_LEN = 110;
 
 // ---- ground: a stone quay in front of the river ----
 export function NoviSadGround() {
