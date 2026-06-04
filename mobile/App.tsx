@@ -32,8 +32,7 @@ import {
   loadEternal,
   saveEternal,
 } from "./src/game/storage";
-import { Joystick } from "./src/ui/Joystick";
-import { ActionButtons } from "./src/ui/ActionButtons";
+import { Controls } from "./src/ui/Controls";
 import { Hud } from "./src/ui/Hud";
 import { StartScreen } from "./src/ui/StartScreen";
 import { SetupScreen } from "./src/ui/SetupScreen";
@@ -260,16 +259,9 @@ export default function App() {
 
           <Hud hud={hud} foulsEnabled={foulsEnabled} />
 
-          {!paused && !gameOver && <PauseButton onPress={() => togglePause(true)} />}
+          {!paused && !gameOver && <Controls input={sim.input} onBall={onBall} />}
 
-          <View pointerEvents="box-none" style={styles.controls}>
-            <View style={styles.side}>
-              <Joystick onMove={(x, z) => sim.input.setMove(x, z)} />
-            </View>
-            <View style={styles.side}>
-              <ActionButtons input={sim.input} onBall={onBall} />
-            </View>
-          </View>
+          {!paused && !gameOver && <PauseButton onPress={() => togglePause(true)} />}
 
           {paused && !gameOver && (
             <PauseMenu onResume={() => togglePause(false)} onSave={doSave} onQuit={quitToMenu} />

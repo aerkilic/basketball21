@@ -10,14 +10,14 @@ export function attemptSteal(g: GameState, defender: Player) {
   if (defender.stealCooldown > 0 || defender.actionLock > 0 || defender.hasBall) return;
   defender.anim = "steal";
   defender.animPhase = 0;
-  defender.stealCooldown = 0.7;
+  defender.stealCooldown = 1.4; // longer recovery between poke attempts
   defender.actionLock = 0.25;
   g.events.push({ type: "shoot", team: defender.team, data: { steal: true } });
 
   const handler = ballHandler(g);
   if (!handler || handler.team === defender.team) return;
   const d = distXZ(defender.pos, handler.pos);
-  const inRange = d < defender.stats.reach + 0.4;
+  const inRange = d < defender.stats.reach + 0.3;
 
   if (!inRange) return; // swiped at air
 
@@ -27,10 +27,11 @@ export function attemptSteal(g: GameState, defender: Player) {
   const facing = clamp(1 - da / Math.PI, 0, 1);
 
   const skill = defender.team === "CPU" ? DIFFICULTY[g.difficulty].defSkill : 1;
-  let stealChance = (defender.stats.steal * 0.55 + 0.1) * facing * skill;
-  stealChance *= clamp(1 - handler.stats.dribble * 0.6, 0.3, 1);
-  // a player who just crossed over is harder to strip
-  if (handler.crossoverT > 0) stealChance *= 0.4;
+  let stealChance = (defender.stats.steal * 0.38 + 0.04) * facing * skill;
+  stealChance *= clamp(1 - handler.stats.dribble * 0.7, 0.25, 1);
+  // moving handlers and fresh crossovers are harder to strip
+  if (Math.hypot(handler.vel.x, handler.vel.z) > 1.5) stealChance *= 0.7;
+  if (handler.crossoverT > 0) stealChance *= 0.35;
 
   if (chance(stealChance)) {
     // clean steal

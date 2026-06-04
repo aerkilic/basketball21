@@ -140,10 +140,10 @@ function assignAndDefend(g: GameState, cpus: Player[], dt: number) {
 function defendMan(g: GameState, c: Player, man: Player, react: number, dt: number) {
   if (c.actionLock > 0 || c.airborne) return;
   const onBall = man.hasBall;
-  const gap = onBall ? 1.0 : 1.5;
+  const gap = onBall ? 1.3 : 1.5;
   const spot = guardSpot(man, gap);
   // imperfect: don't always close out fully
-  moveToPoint(c, spot.x, spot.z, onBall ? 0.95 : 0.78);
+  moveToPoint(c, spot.x, spot.z, onBall ? 0.88 : 0.78);
   face(c, man.pos.x, man.pos.z, dt);
 
   if (onBall) {
@@ -153,8 +153,8 @@ function defendMan(g: GameState, c: Player, man: Player, react: number, dt: numb
       attemptBlock(g, c);
       return;
     }
-    // occasional steal attempt when close
-    if (d < c.stats.reach && c.stealCooldown === 0 && chance(react * dt * 3)) {
+    // occasional steal attempt — only when tight and much less often
+    if (d < c.stats.reach * 0.85 && c.stealCooldown === 0 && chance(react * dt * 1.1)) {
       attemptSteal(g, c);
     }
   }
