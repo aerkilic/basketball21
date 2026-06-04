@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { Simulation } from "./src/game/Simulation";
 import { MatchConfig, PlayerKind } from "./src/game/constants";
@@ -217,6 +218,7 @@ export default function App() {
   const gameOver = hud.phase === "GAMEOVER";
 
   return (
+    <SafeAreaProvider>
     <GestureHandlerRootView style={styles.root}>
       <StatusBar hidden />
 
@@ -288,6 +290,7 @@ export default function App() {
         </View>
       )}
     </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 

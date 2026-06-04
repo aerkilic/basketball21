@@ -2,7 +2,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { EternalRow, eternalSorted, teamById } from "../game/tournament";
-import { LEFT_MARGIN } from "./layout";
+import { useMenuInsets } from "./layout";
 
 export function EternalTableScreen({
   table,
@@ -12,9 +12,10 @@ export function EternalTableScreen({
   onBack: () => void;
 }) {
   const rows = eternalSorted(table);
+  const pad = useMenuInsets();
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingLeft: LEFT_MARGIN }]}>
+      <ScrollView contentContainerStyle={[styles.scroll, pad]}>
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.back}>
             <Text style={styles.backText}>‹ Zurück</Text>

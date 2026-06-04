@@ -1,9 +1,11 @@
-// Shared layout constants for the menu/selection screens.
-import { Dimensions } from "react-native";
+// Shared layout helper for the menu/selection screens. Uses the real safe-area
+// insets so content clears the landscape notch (earpiece + camera) on either side.
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// dp is ~physical at 160dpi: 1cm ≈ 63dp. Target ~5cm left margin in landscape,
-// capped so content stays usable on smaller screens.
-const CM = 63;
-const { width } = Dimensions.get("window");
-
-export const LEFT_MARGIN = Math.round(Math.min(5 * CM, width * 0.34));
+export function useMenuInsets() {
+  const insets = useSafeAreaInsets();
+  return {
+    paddingLeft: Math.max(insets.left + 22, 30),
+    paddingRight: Math.max(insets.right + 22, 30),
+  };
+}

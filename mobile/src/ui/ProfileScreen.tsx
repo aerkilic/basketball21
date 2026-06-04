@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from "react-native";
 import { TEAMS, Profile } from "../game/tournament";
-import { LEFT_MARGIN } from "./layout";
+import { useMenuInsets } from "./layout";
 
 export function ProfileScreen({
   onStart,
@@ -14,6 +14,7 @@ export function ProfileScreen({
   const [name, setName] = useState("");
   const [nick, setNick] = useState("");
   const [teamId, setTeamId] = useState<string | null>(null);
+  const pad = useMenuInsets();
 
   const ready = name.trim().length > 0 && nick.trim().length > 0 && teamId;
 
@@ -34,7 +35,7 @@ export function ProfileScreen({
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingLeft: LEFT_MARGIN }]}>
+      <ScrollView contentContainerStyle={[styles.scroll, pad]}>
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.back}>
             <Text style={styles.backText}>‹ Zurück</Text>

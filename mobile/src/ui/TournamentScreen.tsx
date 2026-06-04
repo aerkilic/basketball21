@@ -10,7 +10,7 @@ import {
   Fixture,
   GroupKey,
 } from "../game/tournament";
-import { LEFT_MARGIN } from "./layout";
+import { useMenuInsets } from "./layout";
 
 export function TournamentScreen({
   t,
@@ -25,6 +25,7 @@ export function TournamentScreen({
   onNewTournament: () => void;
   onExit: () => void;
 }) {
+  const pad = useMenuInsets();
   const me = t.profile.teamId;
   const next = getPlayerFixture(t);
   const sf = t.knockouts.filter((f) => f.stage === "SF");
@@ -51,7 +52,7 @@ export function TournamentScreen({
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingLeft: LEFT_MARGIN }]}>
+      <ScrollView contentContainerStyle={[styles.scroll, pad]}>
         <View style={styles.header}>
           <Pressable onPress={onExit} style={styles.back}>
             <Text style={styles.backText}>‹ Menü</Text>

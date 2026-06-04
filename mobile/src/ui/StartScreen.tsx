@@ -2,7 +2,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { SaveMeta } from "../game/storage";
-import { LEFT_MARGIN } from "./layout";
+import { useMenuInsets } from "./layout";
 
 export function StartScreen({
   saveMeta,
@@ -17,9 +17,10 @@ export function StartScreen({
   onContinue: () => void;
   onTournament: () => void;
 }) {
+  const pad = useMenuInsets();
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingLeft: LEFT_MARGIN }]}>
+      <ScrollView contentContainerStyle={[styles.scroll, pad]}>
         <Text style={styles.kicker}>STREET BASKETBALL</Text>
         <Text style={styles.title}>BASKETBALL 21</Text>
         <Text style={styles.sub}>2 gegen 2 · ein Korb · dein Court</Text>

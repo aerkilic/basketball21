@@ -12,7 +12,7 @@ import {
   TIME_OPTIONS,
   TEAM_PRESETS,
 } from "../game/constants";
-import { LEFT_MARGIN } from "./layout";
+import { useMenuInsets } from "./layout";
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -47,6 +47,7 @@ export function SetupScreen({
   const [cpuTeam, setCpuTeam] = useState(3);
   const [userJersey, setUserJersey] = useState(DEFAULT_CONFIG.userTeam.jersey);
   const [cpuJersey, setCpuJersey] = useState(DEFAULT_CONFIG.cpuTeam.jersey);
+  const pad = useMenuInsets();
 
   const start = () => {
     const cfg: MatchConfig = {
@@ -63,7 +64,7 @@ export function SetupScreen({
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingLeft: LEFT_MARGIN }]}>
+      <ScrollView contentContainerStyle={[styles.scroll, pad]}>
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.back}>
             <Text style={styles.backText}>‹ Zurück</Text>
