@@ -3,6 +3,7 @@ import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { EternalRow, eternalSorted, teamById } from "../game/tournament";
 import { useMenuInsets } from "./layout";
+import { useI18n } from "../i18n";
 
 export function EternalTableScreen({
   table,
@@ -13,24 +14,25 @@ export function EternalTableScreen({
 }) {
   const rows = eternalSorted(table);
   const pad = useMenuInsets();
+  const { t } = useI18n();
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={[styles.scroll, pad]}>
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.back}>
-            <Text style={styles.backText}>‹ Zurück</Text>
+            <Text style={styles.backText}>{t("common.back")}</Text>
           </Pressable>
-          <Text style={styles.title}>EWIGE TABELLE</Text>
+          <Text style={styles.title}>{t("eternal.title")}</Text>
           <View style={{ width: 60 }} />
         </View>
 
         <View style={styles.thead}>
-          <Text style={[styles.th, styles.cClub]}>Verein</Text>
-          <Text style={styles.th}>Sp</Text>
-          <Text style={styles.th}>S</Text>
-          <Text style={styles.th}>N</Text>
+          <Text style={[styles.th, styles.cClub]}>{t("table.club")}</Text>
+          <Text style={styles.th}>{t("table.played")}</Text>
+          <Text style={styles.th}>{t("table.won")}</Text>
+          <Text style={styles.th}>{t("table.lost")}</Text>
           <Text style={styles.th}>🏆</Text>
-          <Text style={[styles.th, styles.cPts]}>Pkt</Text>
+          <Text style={[styles.th, styles.cPts]}>{t("table.points")}</Text>
         </View>
         {rows.map((r, i) => (
           <View key={r.teamId} style={styles.tr}>
@@ -48,7 +50,7 @@ export function EternalTableScreen({
             <Text style={[styles.td, styles.cPts, styles.pts]}>{r.points}</Text>
           </View>
         ))}
-        <Text style={styles.note}>Punkte: Sieg = 2 · Niederlage = 1. Über alle Turniere kumuliert.</Text>
+        <Text style={styles.note}>{t("eternal.note")}</Text>
       </ScrollView>
     </View>
   );

@@ -1,6 +1,8 @@
 // Court: the rubber street court, painted lines, and a bit of schoolyard scenery.
 import React from "react";
-import { COURT, HOOP, THREE_POINT_DIST } from "../game/constants";
+import { COURT, HOOP, THREE_POINT_DIST, BackdropKind } from "../game/constants";
+import { CappadociaGround } from "./CappadociaBackdrop";
+import { NoviSadGround } from "./NoviSadBackdrop";
 
 const LINE = "#f1f5f9";
 const Y = 0.02;
@@ -28,7 +30,7 @@ function Stripe({
   );
 }
 
-export function Court() {
+export function Court({ backdrop = "classic" }: { backdrop?: BackdropKind }) {
   const w = COURT.halfWidth * 2;
   const courtLen = COURT.zFront - COURT.zBack;
   const courtMidZ = (COURT.zFront + COURT.zBack) / 2;
@@ -36,11 +38,17 @@ export function Court() {
 
   return (
     <group>
-      {/* asphalt surround */}
-      <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[60, 60]} />
-        <meshStandardMaterial color="#3a3f45" roughness={1} />
-      </mesh>
+      {/* surround per backdrop: arena asphalt, Cappadocia desert, or Novi Sad quay */}
+      {backdrop === "cappadocia" ? (
+        <CappadociaGround />
+      ) : backdrop === "novisad" ? (
+        <NoviSadGround />
+      ) : (
+        <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[60, 60]} />
+          <meshStandardMaterial color="#3a3f45" roughness={1} />
+        </mesh>
+      )}
 
       {/* rubber court surface */}
       <mesh position={[0, 0, courtMidZ]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -84,7 +92,8 @@ export function Court() {
         </mesh>
       </group>
 
-      <Scenery />
+      {/* schoolyard scenery (fences + buildings) only in the classic arena backdrop */}
+      {backdrop === "classic" && <Scenery />}
     </group>
   );
 }

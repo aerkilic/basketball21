@@ -1,41 +1,74 @@
-// Tournament / career mode: 8 city teams in two groups (Nord/Süd), double
-// round-robin, top 2 advance, cross semifinals + final. Plus a persistent
-// "ewige Tabelle" (all-time standings) and the player's profile.
-import { MatchConfig, PlayerKind } from "./constants";
+// Tournament / career mode: a league of teams (chosen by the app language) is drawn
+// randomly into two groups (A & B), single round-robin, top 2 of each advance to
+// cross semifinals + final. Points: win = 2, loss = 1; ties broken by basket
+// difference (scored − conceded), then baskets scored. Plus a persistent all-time
+// table across all tournaments.
+import { MatchConfig, PlayerKind, BackdropKind } from "./constants";
 
-export type GroupKey = "NORD" | "SUED";
+export type GroupKey = "A" | "B";
 export type Stage = "GROUP" | "SF" | "FINAL";
 
 export interface Team {
   id: string;
-  city: string;
+  city: string; // display name (city or club)
   color: string;
-  group: GroupKey;
   players: [PlayerKind, PlayerKind];
   strength: number; // 0..1, used to simulate AI-vs-AI results
 }
 
-export const TEAMS: Team[] = [
-  // Gruppe Süd
-  { id: "muc", city: "München", color: "#dc2626", group: "SUED", players: ["BIG", "NORMAL"], strength: 0.85 },
-  { id: "stu", city: "Stuttgart", color: "#f1f5f9", group: "SUED", players: ["NORMAL", "SMALL"], strength: 0.62 },
-  { id: "fra", city: "Frankfurt", color: "#475569", group: "SUED", players: ["NORMAL", "NORMAL"], strength: 0.7 },
-  { id: "nue", city: "Nürnberg", color: "#9333ea", group: "SUED", players: ["BIG", "SMALL"], strength: 0.58 },
-  // Gruppe Nord
-  { id: "ham", city: "Hamburg", color: "#0ea5e9", group: "NORD", players: ["NORMAL", "SMALL"], strength: 0.66 },
-  { id: "ber", city: "Berlin", color: "#eab308", group: "NORD", players: ["BIG", "SMALL"], strength: 0.8 },
-  { id: "koe", city: "Köln", color: "#16a34a", group: "NORD", players: ["SMALL", "SMALL"], strength: 0.55 },
-  { id: "bre", city: "Bremen", color: "#ea580c", group: "NORD", players: ["NORMAL", "NORMAL"], strength: 0.5 },
+export interface League {
+  id: string;
+  teams: Team[];
+}
+
+// ---- German clubs (default for all non-Turkish languages) ----
+const GERMAN_TEAMS: Team[] = [
+  { id: "muc", city: "München", color: "#dc2626", players: ["BIG", "NORMAL"], strength: 0.85 },
+  { id: "stu", city: "Stuttgart", color: "#f1f5f9", players: ["NORMAL", "SMALL"], strength: 0.62 },
+  { id: "fra", city: "Frankfurt", color: "#475569", players: ["NORMAL", "NORMAL"], strength: 0.7 },
+  { id: "nue", city: "Nürnberg", color: "#9333ea", players: ["BIG", "SMALL"], strength: 0.58 },
+  { id: "ham", city: "Hamburg", color: "#0ea5e9", players: ["NORMAL", "SMALL"], strength: 0.66 },
+  { id: "ber", city: "Berlin", color: "#eab308", players: ["BIG", "SMALL"], strength: 0.8 },
+  { id: "koe", city: "Köln", color: "#16a34a", players: ["SMALL", "SMALL"], strength: 0.55 },
+  { id: "bre", city: "Bremen", color: "#ea580c", players: ["NORMAL", "NORMAL"], strength: 0.5 },
 ];
 
-export const teamById = (id: string): Team => TEAMS.find((t) => t.id === id)!;
-const groupTeams = (g: GroupKey): Team[] => TEAMS.filter((t) => t.group === g);
+// ---- Turkish clubs (used when the app language is Turkish) ----
+const TURKISH_TEAMS: Team[] = [
+  { id: "tr_gs", city: "Galatasaray", color: "#a11818", players: ["BIG", "SMALL"], strength: 0.86 },
+  { id: "tr_fb", city: "Fenerbahçe", color: "#16307a", players: ["BIG", "NORMAL"], strength: 0.84 },
+  { id: "tr_bjk", city: "Beşiktaş", color: "#1f2937", players: ["NORMAL", "SMALL"], strength: 0.8 },
+  { id: "tr_tra", city: "Trabzon", color: "#7a1f3d", players: ["NORMAL", "NORMAL"], strength: 0.74 },
+  { id: "tr_kay", city: "Kayseri", color: "#c4302b", players: ["NORMAL", "SMALL"], strength: 0.6 },
+  { id: "tr_mer", city: "Mersin", color: "#b22222", players: ["SMALL", "SMALL"], strength: 0.52 },
+  { id: "tr_ank", city: "Ankara", color: "#0b3d91", players: ["BIG", "SMALL"], strength: 0.68 },
+  { id: "tr_bur", city: "Bursa", color: "#15803d", players: ["NORMAL", "NORMAL"], strength: 0.64 },
+  { id: "tr_kon", city: "Konya", color: "#166534", players: ["BIG", "NORMAL"], strength: 0.66 },
+  { id: "tr_izm", city: "İzmir", color: "#d97706", players: ["NORMAL", "SMALL"], strength: 0.57 },
+];
+
+export const LEAGUES: Record<string, League> = {
+  de: { id: "de", teams: GERMAN_TEAMS },
+  tr: { id: "tr", teams: TURKISH_TEAMS },
+};
+
+// language -> league (German is the default for en/uk/sr/de)
+export function leagueForLang(lang: string): League {
+  return LEAGUES[lang] ?? LEAGUES.de;
+}
+export function leagueById(id: string): League {
+  return LEAGUES[id] ?? LEAGUES.de;
+}
+
+const ALL_TEAMS: Team[] = [...GERMAN_TEAMS, ...TURKISH_TEAMS];
+export const teamById = (id: string): Team =>
+  ALL_TEAMS.find((t) => t.id === id) ?? { id, city: id, color: "#888", players: ["NORMAL", "NORMAL"], strength: 0.5 };
 
 export interface Fixture {
   id: string;
   stage: Stage;
   group: GroupKey | "KO";
-  round: number; // group rounds 1..6, knockouts 7 (SF) / 8 (FINAL)
+  round: number; // group rounds 1..rounds; knockouts rounds+1 (SF) / rounds+2 (FINAL)
   home: string;
   away: string;
   played: boolean;
@@ -44,15 +77,20 @@ export interface Fixture {
 }
 
 export interface Profile {
-  name: string;
   nickname: string;
   teamId: string;
+  backdrop: BackdropKind;
 }
 
 export interface Tournament {
+  id: string; // unique save-slot id
+  updatedAt: number; // last time this tournament was created/played (for slot ordering)
+  leagueId: string;
+  groups: { A: string[]; B: string[] }; // random draw of team ids per group
+  rounds: number; // number of group-stage rounds
   profile: Profile;
   phase: "GROUP" | "SF" | "FINAL" | "DONE";
-  round: number; // current group round (1..6)
+  round: number; // current group round (1..rounds)
   fixtures: Fixture[]; // group stage
   knockouts: Fixture[]; // SF + final
   championId: string | null;
@@ -70,54 +108,74 @@ export interface EternalRow {
   titles: number;
 }
 
-// ---- schedule generation ----
+// ---- helpers ----
 let fxId = 0;
 const nfx = () => `f${fxId++}`;
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 function randHome(a: string, b: string): { home: string; away: string } {
   return Math.random() < 0.5 ? { home: a, away: b } : { home: b, away: a };
 }
 
-// Single round-robin pairings for 4 teams (indices), then mirrored return legs.
-const SINGLE_ROUNDS: [number, number][][] = [
-  [[0, 3], [1, 2]],
-  [[0, 2], [3, 1]],
-  [[0, 1], [2, 3]],
-];
+const roundsFor = (n: number) => (n % 2 === 0 ? n - 1 : n);
 
-function genGroupFixtures(group: GroupKey): Fixture[] {
-  const ts = groupTeams(group);
-  const out: Fixture[] = [];
-  // first legs (rounds 1..3) with random home/away
-  SINGLE_ROUNDS.forEach((pairs, r) => {
-    pairs.forEach(([i, j]) => {
-      const { home, away } = randHome(ts[i].id, ts[j].id);
-      out.push(mkFix("GROUP", group, r + 1, home, away));
-    });
-  });
-  // return legs (rounds 4..6) — swap home/away
-  SINGLE_ROUNDS.forEach((pairs, r) => {
-    pairs.forEach(([i, j]) => {
-      const first = out.find(
-        (f) =>
-          f.round === r + 1 &&
-          ((f.home === ts[i].id && f.away === ts[j].id) ||
-            (f.home === ts[j].id && f.away === ts[i].id))
-      )!;
-      out.push(mkFix("GROUP", group, r + 4, first.away, first.home));
-    });
-  });
-  return out;
+// Circle-method single round-robin pairings. Odd counts get a "BYE" each round.
+function roundRobin(ids: string[]): [string, string][][] {
+  const arr = ids.slice();
+  if (arr.length % 2 === 1) arr.push("BYE");
+  const n = arr.length;
+  const rounds: [string, string][][] = [];
+  for (let r = 0; r < n - 1; r++) {
+    const pairs: [string, string][] = [];
+    for (let i = 0; i < n / 2; i++) {
+      const a = arr[i];
+      const b = arr[n - 1 - i];
+      if (a !== "BYE" && b !== "BYE") pairs.push([a, b]);
+    }
+    rounds.push(pairs);
+    arr.splice(1, 0, arr.pop()!); // rotate, keeping the first element fixed
+  }
+  return rounds;
 }
 
 function mkFix(stage: Stage, group: GroupKey | "KO", round: number, home: string, away: string): Fixture {
   return { id: nfx(), stage, group, round, home, away, played: false, homeScore: 0, awayScore: 0 };
 }
 
-export function createTournament(profile: Profile): Tournament {
+function genGroupFixtures(group: GroupKey, ids: string[]): Fixture[] {
+  const out: Fixture[] = [];
+  roundRobin(ids).forEach((pairs, r) => {
+    pairs.forEach(([a, b]) => {
+      const { home, away } = randHome(a, b);
+      out.push(mkFix("GROUP", group, r + 1, home, away));
+    });
+  });
+  return out;
+}
+
+export function createTournament(profile: Profile, leagueId: string): Tournament {
   fxId = 0;
-  const fixtures = [...genGroupFixtures("NORD"), ...genGroupFixtures("SUED")];
-  return {
+  const league = leagueById(leagueId);
+  const ids = shuffle(league.teams.map((t) => t.id));
+  const half = Math.ceil(ids.length / 2);
+  const A = ids.slice(0, half);
+  const B = ids.slice(half);
+  const rounds = roundsFor(A.length);
+  const fixtures = [...genGroupFixtures("A", A), ...genGroupFixtures("B", B)];
+  const t: Tournament = {
+    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    updatedAt: Date.now(),
+    leagueId: league.id,
+    groups: { A, B },
+    rounds,
     profile,
     phase: "GROUP",
     round: 1,
@@ -126,6 +184,8 @@ export function createTournament(profile: Profile): Tournament {
     championId: null,
     appliedToEternal: false,
   };
+  skipPlayerByes(t); // if the player has a bye in round 1, auto-advance
+  return t;
 }
 
 // ---- standings ----
@@ -141,12 +201,13 @@ export interface StandRow {
 
 export function groupStandings(t: Tournament, group: GroupKey): StandRow[] {
   const rows: Record<string, StandRow> = {};
-  for (const tm of groupTeams(group))
-    rows[tm.id] = { teamId: tm.id, played: 0, won: 0, lost: 0, pf: 0, pa: 0, points: 0 };
+  for (const id of t.groups[group] ?? [])
+    rows[id] = { teamId: id, played: 0, won: 0, lost: 0, pf: 0, pa: 0, points: 0 };
   for (const f of t.fixtures) {
     if (f.group !== group || !f.played) continue;
     const h = rows[f.home];
     const a = rows[f.away];
+    if (!h || !a) continue;
     h.played++; a.played++;
     h.pf += f.homeScore; h.pa += f.awayScore;
     a.pf += f.awayScore; a.pa += f.homeScore;
@@ -156,6 +217,7 @@ export function groupStandings(t: Tournament, group: GroupKey): StandRow[] {
       a.won++; a.points += 2; h.lost++; h.points += 1;
     }
   }
+  // points, then basket difference (scored − conceded), then baskets scored
   return Object.values(rows).sort(
     (x, y) => y.points - x.points || y.pf - y.pa - (x.pf - x.pa) || y.pf - x.pf
   );
@@ -182,9 +244,7 @@ const involvesPlayer = (t: Tournament, f: Fixture): boolean =>
 // The next match the player must play interactively, or null.
 export function getPlayerFixture(t: Tournament): Fixture | null {
   if (t.phase === "GROUP")
-    return (
-      t.fixtures.find((f) => f.round === t.round && involvesPlayer(t, f) && !f.played) ?? null
-    );
+    return t.fixtures.find((f) => f.round === t.round && involvesPlayer(t, f) && !f.played) ?? null;
   if (t.phase === "SF")
     return t.knockouts.find((f) => f.stage === "SF" && involvesPlayer(t, f) && !f.played) ?? null;
   if (t.phase === "FINAL")
@@ -192,33 +252,68 @@ export function getPlayerFixture(t: Tournament): Fixture | null {
   return null;
 }
 
+// Simulate the remaining games of the current group round (used after the player's
+// own game, and for rounds where the player has a bye).
+function simRound(t: Tournament, round: number) {
+  for (const f of t.fixtures) if (f.round === round && !f.played) simFixture(f);
+}
+
+// Advance through any group rounds where the player has a bye; enter the knockouts
+// once the group stage is exhausted.
+function skipPlayerByes(t: Tournament) {
+  while (t.phase === "GROUP") {
+    const hasGame = t.fixtures.some((f) => f.round === t.round && involvesPlayer(t, f) && !f.played);
+    if (hasGame) return;
+    simRound(t, t.round);
+    if (t.round < t.rounds) t.round++;
+    else {
+      enterKnockouts(t);
+      return;
+    }
+  }
+}
+
 // Build the cross semifinals from final group standings.
 function buildKnockouts(t: Tournament) {
-  const nord = groupStandings(t, "NORD");
-  const sued = groupStandings(t, "SUED");
-  const n1 = nord[0].teamId, n2 = nord[1].teamId;
-  const s1 = sued[0].teamId, s2 = sued[1].teamId;
-  const a = randHome(n1, s2);
-  const b = randHome(n2, s1);
+  const a = groupStandings(t, "A");
+  const b = groupStandings(t, "B");
+  const a1 = a[0].teamId, a2 = a[1].teamId;
+  const b1 = b[0].teamId, b2 = b[1].teamId;
+  const sfRound = t.rounds + 1;
+  const m1 = randHome(a1, b2);
+  const m2 = randHome(b1, a2);
   t.knockouts = [
-    mkFix("SF", "KO", 7, a.home, a.away),
-    mkFix("SF", "KO", 7, b.home, b.away),
+    mkFix("SF", "KO", sfRound, m1.home, m1.away),
+    mkFix("SF", "KO", sfRound, m2.home, m2.away),
   ];
 }
 
 function buildFinal(t: Tournament) {
   if (t.knockouts.some((f) => f.stage === "FINAL")) return;
   const sfs = t.knockouts.filter((f) => f.stage === "SF");
-  const w1 = winnerOf(sfs[0]);
-  const w2 = winnerOf(sfs[1]);
-  const f = randHome(w1, w2);
-  t.knockouts.push(mkFix("FINAL", "KO", 8, f.home, f.away));
+  const f = randHome(winnerOf(sfs[0]), winnerOf(sfs[1]));
+  t.knockouts.push(mkFix("FINAL", "KO", t.rounds + 2, f.home, f.away));
 }
 
 function setChampion(t: Tournament) {
   const fin = t.knockouts.find((f) => f.stage === "FINAL")!;
   t.championId = winnerOf(fin);
   t.phase = "DONE";
+}
+
+function enterKnockouts(t: Tournament) {
+  buildKnockouts(t);
+  const playerSF = t.knockouts.find((f) => f.stage === "SF" && involvesPlayer(t, f) && !f.played);
+  if (playerSF) {
+    t.phase = "SF";
+    return;
+  }
+  // player didn't qualify — auto-play the whole bracket
+  t.knockouts.forEach((f) => !f.played && simFixture(f));
+  buildFinal(t);
+  const fin = t.knockouts.find((f) => f.stage === "FINAL")!;
+  if (!fin.played) simFixture(fin);
+  setChampion(t);
 }
 
 // Record the player's match result (from the USER-side perspective) and advance.
@@ -239,29 +334,20 @@ export function recordResult(t: Tournament, userScore: number, cpuScore: number)
 
 function resolveAfter(t: Tournament) {
   if (t.phase === "GROUP") {
-    for (const f of t.fixtures) if (f.round === t.round && !f.played) simFixture(f);
-    if (t.round < 6) {
+    simRound(t, t.round); // finish the rest of this round
+    if (t.round < t.rounds) {
       t.round++;
+      skipPlayerByes(t); // advance over bye rounds or into the knockouts
     } else {
-      buildKnockouts(t);
-      if (getPlayerFixture(t)) {
-        t.phase = "SF";
-      } else {
-        // player eliminated — auto-play the bracket
-        t.knockouts.forEach((f) => !f.played && simFixture(f));
-        buildFinal(t);
-        const fin = t.knockouts.find((f) => f.stage === "FINAL")!;
-        if (!fin.played) simFixture(fin);
-        setChampion(t);
-      }
+      enterKnockouts(t);
     }
   } else if (t.phase === "SF") {
     for (const f of t.knockouts) if (f.stage === "SF" && !f.played) simFixture(f);
     buildFinal(t);
-    if (getPlayerFixture(t)) {
+    const fin = t.knockouts.find((f) => f.stage === "FINAL")!;
+    if (involvesPlayer(t, fin) && !fin.played) {
       t.phase = "FINAL";
     } else {
-      const fin = t.knockouts.find((f) => f.stage === "FINAL")!;
       if (!fin.played) simFixture(fin);
       setChampion(t);
     }
@@ -280,6 +366,7 @@ export function matchConfigFor(t: Tournament, f: Fixture): MatchConfig {
   return {
     difficulty: "NORMAL",
     fouls: true,
+    backdrop: t.profile.backdrop ?? "classic",
     mode: "score",
     scoreTarget: 21,
     timeLimit: 600,
@@ -292,10 +379,10 @@ export function matchConfigFor(t: Tournament, f: Fixture): MatchConfig {
   };
 }
 
-// ---- eternal table ----
+// ---- eternal table (all teams across all leagues) ----
 export function emptyEternal(): Record<string, EternalRow> {
   const out: Record<string, EternalRow> = {};
-  for (const t of TEAMS)
+  for (const t of ALL_TEAMS)
     out[t.id] = { teamId: t.id, played: 0, won: 0, lost: 0, pf: 0, pa: 0, points: 0, titles: 0 };
   return out;
 }
@@ -305,9 +392,12 @@ export function applyToEternal(
   table: Record<string, EternalRow>
 ): Record<string, EternalRow> {
   const next = { ...table };
-  for (const id of TEAMS.map((x) => x.id)) if (!next[id]) next[id] = emptyEternal()[id];
+  const ensure = (id: string) => {
+    if (!next[id]) next[id] = { teamId: id, played: 0, won: 0, lost: 0, pf: 0, pa: 0, points: 0, titles: 0 };
+  };
   const all = [...t.fixtures, ...t.knockouts].filter((f) => f.played);
   for (const f of all) {
+    ensure(f.home); ensure(f.away);
     const h = next[f.home], a = next[f.away];
     h.played++; a.played++;
     h.pf += f.homeScore; h.pa += f.awayScore;
@@ -318,7 +408,10 @@ export function applyToEternal(
       a.won++; a.points += 2; h.lost++; h.points += 1;
     }
   }
-  if (t.championId) next[t.championId].titles++;
+  if (t.championId) {
+    ensure(t.championId);
+    next[t.championId].titles++;
+  }
   return next;
 }
 

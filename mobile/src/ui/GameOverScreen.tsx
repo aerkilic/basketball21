@@ -1,6 +1,7 @@
 // GameOverScreen: result + rematch / menu.
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
+import { useI18n } from "../i18n";
 
 export function GameOverScreen({
   winner,
@@ -21,8 +22,9 @@ export function GameOverScreen({
   tournament?: boolean;
   onContinue?: () => void;
 }) {
+  const { t } = useI18n();
   const won = winner === "USER";
-  const head = draw ? "UNENTSCHIEDEN" : won ? "GEWONNEN! 🏆" : "VERLOREN";
+  const head = draw ? t("over.draw") : won ? t("over.won") : t("over.lost");
   const color = draw ? "#fbbf24" : won ? "#4ade80" : "#f87171";
   return (
     <View style={styles.root}>
@@ -30,20 +32,20 @@ export function GameOverScreen({
       <Text style={styles.score}>
         {scoreUser} : {scoreCpu}
       </Text>
-      <Text style={styles.sub}>{draw ? "Knapp!" : won ? "Saubere Buckets." : "Nochmal versuchen?"}</Text>
+      <Text style={styles.sub}>{draw ? t("over.subDraw") : won ? t("over.subWon") : t("over.subLost")}</Text>
       {tournament ? (
         <View style={styles.row}>
           <Pressable style={[styles.btn, { backgroundColor: "#ef4444" }]} onPress={onContinue}>
-            <Text style={styles.btnText}>WEITER ZUM TURNIER ▶</Text>
+            <Text style={styles.btnText}>{t("over.continueTournament")}</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.row}>
           <Pressable style={[styles.btn, { backgroundColor: "#ef4444" }]} onPress={onRematch}>
-            <Text style={styles.btnText}>REVANCHE</Text>
+            <Text style={styles.btnText}>{t("over.rematch")}</Text>
           </Pressable>
           <Pressable style={[styles.btn, { backgroundColor: "rgba(255,255,255,0.12)" }]} onPress={onMenu}>
-            <Text style={styles.btnText}>MENÜ</Text>
+            <Text style={styles.btnText}>{t("over.menu")}</Text>
           </Pressable>
         </View>
       )}

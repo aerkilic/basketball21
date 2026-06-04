@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import {
   Difficulty,
   GameMode,
+  BackdropKind,
   MatchConfig,
   DEFAULT_CONFIG,
   JERSEYS,
@@ -13,6 +14,15 @@ import {
   TEAM_PRESETS,
 } from "../game/constants";
 import { useMenuInsets } from "./layout";
+import { useI18n } from "../i18n";
+
+// preset name -> description translation key
+const DESC_KEY: Record<string, string> = {
+  Classic: "teamdesc.classic",
+  "Twin Towers": "teamdesc.towers",
+  Speed: "teamdesc.speed",
+  Allround: "teamdesc.allround",
+};
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -42,16 +52,19 @@ export function SetupScreen({
   const [score, setScore] = useState(DEFAULT_CONFIG.scoreTarget);
   const [minutes, setMinutes] = useState(10);
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_CONFIG.difficulty);
+  const [backdrop, setBackdrop] = useState<BackdropKind>(DEFAULT_CONFIG.backdrop);
   const [userTeam, setUserTeam] = useState(0);
   const [cpuTeam, setCpuTeam] = useState(3);
   const [userJersey, setUserJersey] = useState(DEFAULT_CONFIG.userTeam.jersey);
   const [cpuJersey, setCpuJersey] = useState(DEFAULT_CONFIG.cpuTeam.jersey);
   const pad = useMenuInsets();
+  const { t } = useI18n();
 
   const start = () => {
     const cfg: MatchConfig = {
       difficulty,
       fouls: true,
+      backdrop,
       mode,
       scoreTarget: mode === "score" ? score : 21,
       timeLimit: mode === "time" ? minutes * 60 : DEFAULT_CONFIG.timeLimit,
@@ -66,21 +79,21 @@ export function SetupScreen({
       <ScrollView contentContainerStyle={[styles.scroll, pad]}>
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.back}>
-            <Text style={styles.backText}>‹ Zurück</Text>
+            <Text style={styles.backText}>{t("common.back")}</Text>
           </Pressable>
-          <Text style={styles.title}>SPIEL EINRICHTEN</Text>
+          <Text style={styles.title}>{t("setup.title")}</Text>
           <View style={{ width: 60 }} />
         </View>
 
-        <Text style={styles.section}>Spielmodus</Text>
+        <Text style={styles.section}>{t("setup.mode")}</Text>
         <View style={styles.row}>
-          <Chip label="PUNKTE" active={mode === "score"} onPress={() => setMode("score")} />
-          <Chip label="ZEIT" active={mode === "time"} onPress={() => setMode("time")} />
+          <Chip label={t("setup.points")} active={mode === "score"} onPress={() => setMode("score")} />
+          <Chip label={t("setup.time")} active={mode === "time"} onPress={() => setMode("time")} />
         </View>
 
         {mode === "score" ? (
           <>
-            <Text style={styles.section}>Bis wie viele Punkte?</Text>
+            <Text style={styles.section}>{t("setup.toPoints")}</Text>
             <View style={styles.row}>
               {SCORE_OPTIONS.map((s) => (
                 <Chip key={s} label={`${s}`} active={score === s} onPress={() => setScore(s)} />
@@ -89,12 +102,12 @@ export function SetupScreen({
           </>
         ) : (
           <>
-            <Text style={styles.section}>Spielzeit</Text>
+            <Text style={styles.section}>{t("setup.playTime")}</Text>
             <View style={styles.row}>
               {TIME_OPTIONS.map((m) => (
                 <Chip
                   key={m}
-                  label={`${m} min`}
+                  label={t("setup.minSuffix", { m })}
                   active={minutes === m}
                   onPress={() => setMinutes(m)}
                 />
@@ -103,32 +116,39 @@ export function SetupScreen({
           </>
         )}
 
-        <Text style={styles.section}>Schwierigkeit</Text>
+        <Text style={styles.section}>{t("setup.difficulty")}</Text>
         <View style={styles.row}>
           {(["EASY", "NORMAL", "HARD"] as Difficulty[]).map((d) => (
             <Chip
               key={d}
-              label={d === "EASY" ? "LEICHT" : d === "NORMAL" ? "NORMAL" : "SCHWER"}
+              label={d === "EASY" ? t("diff.easy") : d === "NORMAL" ? t("diff.normal") : t("diff.hard")}
               active={difficulty === d}
               onPress={() => setDifficulty(d)}
             />
           ))}
         </View>
 
-        <Text style={styles.section}>Dein Team</Text>
+        <Text style={styles.section}>{t("setup.backdrop")}</Text>
+        <View style={styles.row}>
+          <Chip label={t("backdrop.classic")} active={backdrop === "classic"} onPress={() => setBackdrop("classic")} />
+          <Chip label={t("backdrop.cappadocia")} active={backdrop === "cappadocia"} onPress={() => setBackdrop("cappadocia")} />
+          <Chip label={t("backdrop.novisad")} active={backdrop === "novisad"} onPress={() => setBackdrop("novisad")} />
+        </View>
+
+        <Text style={styles.section}>{t("setup.yourTeam")}</Text>
         <View style={styles.teamRow}>
-          {TEAM_PRESETS.map((t, i) => (
+          {TEAM_PRESETS.map((preset, i) => (
             <Pressable
-              key={t.name}
+              key={preset.name}
               onPress={() => setUserTeam(i)}
               style={[styles.teamCard, userTeam === i && styles.teamCardActive]}
             >
-              <Text style={[styles.teamName, userTeam === i && styles.teamNameActive]}>{t.name}</Text>
-              <Text style={styles.teamDesc}>{t.desc}</Text>
+              <Text style={[styles.teamName, userTeam === i && styles.teamNameActive]}>{preset.name}</Text>
+              <Text style={styles.teamDesc}>{t(DESC_KEY[preset.name] ?? "")}</Text>
             </Pressable>
           ))}
         </View>
-        <Text style={styles.label}>Dein Trikot</Text>
+        <Text style={styles.label}>{t("setup.yourJersey")}</Text>
         <View style={styles.row}>
           {JERSEYS.map((j) => (
             <Swatch
@@ -140,20 +160,20 @@ export function SetupScreen({
           ))}
         </View>
 
-        <Text style={styles.section}>Gegner</Text>
+        <Text style={styles.section}>{t("setup.opponent")}</Text>
         <View style={styles.teamRow}>
-          {TEAM_PRESETS.map((t, i) => (
+          {TEAM_PRESETS.map((preset, i) => (
             <Pressable
-              key={t.name}
+              key={preset.name}
               onPress={() => setCpuTeam(i)}
               style={[styles.teamCard, cpuTeam === i && styles.teamCardActive]}
             >
-              <Text style={[styles.teamName, cpuTeam === i && styles.teamNameActive]}>{t.name}</Text>
-              <Text style={styles.teamDesc}>{t.desc}</Text>
+              <Text style={[styles.teamName, cpuTeam === i && styles.teamNameActive]}>{preset.name}</Text>
+              <Text style={styles.teamDesc}>{t(DESC_KEY[preset.name] ?? "")}</Text>
             </Pressable>
           ))}
         </View>
-        <Text style={styles.label}>Gegner-Trikot</Text>
+        <Text style={styles.label}>{t("setup.opponentJersey")}</Text>
         <View style={styles.row}>
           {JERSEYS.map((j) => (
             <Swatch
@@ -166,7 +186,7 @@ export function SetupScreen({
         </View>
 
         <Pressable style={styles.play} onPress={start}>
-          <Text style={styles.playText}>STARTEN ▶</Text>
+          <Text style={styles.playText}>{t("setup.start")}</Text>
         </Pressable>
       </ScrollView>
     </View>

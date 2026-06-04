@@ -4,13 +4,17 @@ import { GameState } from "./types";
 import { Tournament, EternalRow, emptyEternal } from "./tournament";
 
 const KEY = "bb21_savegame_v1";
-const T_KEY = "bb21_tournament_v1";
+const T_KEY = "bb21_tournament_v1"; // legacy single-tournament slot (migrated on load)
+const T_LIST_KEY = "bb21_tournaments_v2"; // up to MAX_TOURNAMENTS saved tournaments
 const E_KEY = "bb21_eternal_v1";
+
+export const MAX_TOURNAMENTS = 5;
 
 export interface SaveMeta {
   scoreUser: number;
   scoreCpu: number;
-  mode: string;
+  timeMode: boolean;
+  scoreTarget: number;
   savedAt: number;
 }
 
@@ -41,7 +45,8 @@ export async function getSaveMeta(): Promise<SaveMeta | null> {
   return {
     scoreUser: s.score.USER,
     scoreCpu: s.score.CPU,
-    mode: s.mode === "time" ? "Zeit" : `bis ${s.scoreTarget}`,
+    timeMode: s.mode === "time",
+    scoreTarget: s.scoreTarget,
     savedAt: Date.now(),
   };
 }
@@ -52,28 +57,63 @@ export async function clearSave(): Promise<void> {
   } catch {}
 }
 
-// ---- tournament ----
-export async function saveTournament(t: Tournament): Promise<void> {
-  try {
-    await AsyncStorage.setItem(T_KEY, JSON.stringify(t));
-  } catch (e) {
-    console.warn("saveTournament failed", e);
-  }
+// ---- tournaments (up to MAX_TOURNAMENTS slots) ----
+function withId(t: Tournament): Tournament {
+  // heal tournaments saved before id/updatedAt existed
+  return {
+    ...t,
+    id: t.id ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    updatedAt: t.updatedAt ?? Date.now(),
+  };
 }
 
-export async function loadTournament(): Promise<Tournament | null> {
+const byRecency = (a: Tournament, b: Tournament) => b.updatedAt - a.updatedAt;
+
+// Load all saved tournaments, newest first, migrating a legacy single save if present.
+export async function loadTournaments(): Promise<Tournament[]> {
   try {
-    const raw = await AsyncStorage.getItem(T_KEY);
-    return raw ? (JSON.parse(raw) as Tournament) : null;
+    const raw = await AsyncStorage.getItem(T_LIST_KEY);
+    if (raw) {
+      const list = (JSON.parse(raw) as Tournament[]).map(withId);
+      return list.sort(byRecency).slice(0, MAX_TOURNAMENTS);
+    }
+    // migrate the old single-tournament slot, if any
+    const legacy = await AsyncStorage.getItem(T_KEY);
+    if (legacy) {
+      const t = withId(JSON.parse(legacy) as Tournament);
+      await AsyncStorage.setItem(T_LIST_KEY, JSON.stringify([t]));
+      await AsyncStorage.removeItem(T_KEY);
+      return [t];
+    }
+    return [];
   } catch {
-    return null;
+    return [];
   }
 }
 
-export async function clearTournament(): Promise<void> {
+async function persist(list: Tournament[]): Promise<void> {
   try {
-    await AsyncStorage.removeItem(T_KEY);
-  } catch {}
+    await AsyncStorage.setItem(T_LIST_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.warn("saveTournaments failed", e);
+  }
+}
+
+// Insert or update a tournament, keep newest-first, and cap at MAX_TOURNAMENTS
+// (the oldest is dropped when a 6th is added). Returns the new list.
+export async function upsertTournament(t: Tournament, current: Tournament[]): Promise<Tournament[]> {
+  const stamped = { ...t, updatedAt: Date.now() };
+  const next = [stamped, ...current.filter((x) => x.id !== stamped.id)]
+    .sort(byRecency)
+    .slice(0, MAX_TOURNAMENTS);
+  await persist(next);
+  return next;
+}
+
+export async function deleteTournament(id: string, current: Tournament[]): Promise<Tournament[]> {
+  const next = current.filter((x) => x.id !== id);
+  await persist(next);
+  return next;
 }
 
 // ---- eternal table ----

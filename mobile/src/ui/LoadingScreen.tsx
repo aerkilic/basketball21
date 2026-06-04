@@ -1,10 +1,12 @@
 // LoadingScreen: animated progress bar shown while the match spins up.
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useI18n } from "../i18n";
 
 export function LoadingScreen({ onDone }: { onDone: () => void }) {
   const [progress, setProgress] = useState(0);
   const done = useRef(false);
+  const { t: tr } = useI18n();
 
   useEffect(() => {
     const startedAt = Date.now();
@@ -23,13 +25,13 @@ export function LoadingScreen({ onDone }: { onDone: () => void }) {
 
   return (
     <View style={styles.root}>
-      <Text style={styles.kicker}>STREET BASKETBALL</Text>
-      <Text style={styles.title}>BASKETBALL 21</Text>
+      <Text style={styles.kicker}>{tr("app.kicker")}</Text>
+      <Text style={styles.title}>{tr("app.title")}</Text>
       <View style={styles.barOuter}>
         <View style={[styles.barInner, { width: `${Math.round(progress * 100)}%` }]} />
       </View>
       <Text style={styles.pct}>{Math.round(progress * 100)}%</Text>
-      <Text style={styles.tip}>Court wird vorbereitet…</Text>
+      <Text style={styles.tip}>{tr("loading.tip")}</Text>
     </View>
   );
 }

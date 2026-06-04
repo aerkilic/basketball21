@@ -14,5 +14,5 @@ export function callFoul(g: GameState, offender: Player, victimTeam: TeamId) {
   g.phaseTimer = 0;
   g.events.push({ type: "foul", team: offender.team });
   g.events.push({ type: "whistle" });
-  pushMessage(g, `FOUL — ${offender.team === "USER" ? "DEIN TEAM" : "CPU"} (${victimTeam} Ball)`, 1.8);
+  pushMessage(g, "msg.foul", 1.8, { by: offender.team, to: victimTeam });
 }

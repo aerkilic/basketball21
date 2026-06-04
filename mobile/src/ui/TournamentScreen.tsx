@@ -1,6 +1,6 @@
 // TournamentScreen: the career hub — group tables, knockout bracket, next match.
 import React from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import {
   Tournament,
   groupStandings,
@@ -11,6 +11,7 @@ import {
   GroupKey,
 } from "../game/tournament";
 import { useMenuInsets } from "./layout";
+import { useI18n } from "../i18n";
 
 export function TournamentScreen({
   t,
@@ -26,20 +27,16 @@ export function TournamentScreen({
   onExit: () => void;
 }) {
   const pad = useMenuInsets();
+  const { t: tr } = useI18n();
   const me = t.profile.teamId;
   const next = getPlayerFixture(t);
-
-  const confirmNew = () =>
-    Alert.alert(
-      "Neue Karriere?",
-      "Das aktuelle Turnier wird gelöscht und kann nicht wiederhergestellt werden.",
-      [
-        { text: "Abbrechen", style: "cancel" },
-        { text: "Neu starten", style: "destructive", onPress: onNewTournament },
-      ]
-    );
   const sf = t.knockouts.filter((f) => f.stage === "SF");
   const fin = t.knockouts.find((f) => f.stage === "FINAL");
+
+  // the player's own matches across the group stage, in order (results + upcoming)
+  const mySchedule = t.fixtures
+    .filter((f) => f.home === me || f.away === me)
+    .sort((a, b) => a.round - b.round);
 
   const Table = ({ group, title }: { group: GroupKey; title: string }) => {
     const rows = groupStandings(t, group);
@@ -47,11 +44,11 @@ export function TournamentScreen({
       <View style={styles.tableBox}>
         <Text style={styles.tableTitle}>{title}</Text>
         <View style={styles.thead}>
-          <Text style={[styles.th, styles.cClub]}>Verein</Text>
-          <Text style={styles.th}>Sp</Text>
-          <Text style={styles.th}>S</Text>
-          <Text style={styles.th}>N</Text>
-          <Text style={[styles.th, styles.cPts]}>Pkt</Text>
+          <Text style={[styles.th, styles.cClub]}>{tr("table.club")}</Text>
+          <Text style={styles.th}>{tr("table.played")}</Text>
+          <Text style={styles.th}>{tr("table.won")}</Text>
+          <Text style={styles.th}>{tr("table.lost")}</Text>
+          <Text style={[styles.th, styles.cPts]}>{tr("table.points")}</Text>
         </View>
         {rows.map((r, i) => (
           <Row key={r.teamId} r={r} pos={i} mine={r.teamId === me} qualifies={i < 2} />
@@ -65,11 +62,11 @@ export function TournamentScreen({
       <ScrollView contentContainerStyle={[styles.scroll, pad]}>
         <View style={styles.header}>
           <Pressable onPress={onExit} style={styles.back}>
-            <Text style={styles.backText}>‹ Menü</Text>
+            <Text style={styles.backText}>{tr("common.menu")}</Text>
           </Pressable>
-          <Text style={styles.title}>TURNIER</Text>
+          <Text style={styles.title}>{tr("tour.title")}</Text>
           <Pressable onPress={onShowEternal} style={styles.back}>
-            <Text style={styles.backText}>Ewige Tab. ›</Text>
+            <Text style={styles.backText}>{tr("tour.eternal")}</Text>
           </Pressable>
         </View>
         <Text style={styles.you}>
@@ -79,54 +76,66 @@ export function TournamentScreen({
         {/* Next match / result */}
         {t.phase === "DONE" ? (
           <View style={styles.champ}>
-            <Text style={styles.champLabel}>🏆 MEISTER</Text>
+            <Text style={styles.champLabel}>{tr("tour.championLabel")}</Text>
             <Text style={styles.champTeam}>{teamById(t.championId!).city}</Text>
             <Text style={styles.champSub}>
-              {t.championId === me ? "Du hast das Turnier gewonnen!" : "Turnier beendet."}
+              {t.championId === me ? tr("tour.youWonTournament") : tr("tour.tournamentOver")}
             </Text>
             <Pressable style={styles.play} onPress={onNewTournament}>
-              <Text style={styles.playText}>NEUES TURNIER</Text>
+              <Text style={styles.playText}>{tr("tour.newTournament")}</Text>
             </Pressable>
           </View>
         ) : next ? (
           <View style={styles.nextCard}>
             <Text style={styles.nextLabel}>
-              {t.phase === "GROUP" ? `GRUPPENPHASE · Runde ${t.round}/6` : t.phase === "SF" ? "HALBFINALE" : "FINALE"}
+              {t.phase === "GROUP"
+                ? tr("tour.groupPhase", { r: t.round, n: t.rounds })
+                : t.phase === "SF"
+                ? tr("tour.semifinal")
+                : tr("tour.final")}
             </Text>
             <View style={styles.nextRow}>
               <Text style={[styles.nextTeam, next.home === me && styles.nextMine]}>
                 {teamById(next.home).city}
               </Text>
-              <Text style={styles.vs}>vs</Text>
+              <Text style={styles.vs}>{tr("tour.vs")}</Text>
               <Text style={[styles.nextTeam, next.away === me && styles.nextMine]}>
                 {teamById(next.away).city}
               </Text>
             </View>
             <Text style={styles.homeInfo}>
-              {next.home === me ? "🏠 Heimspiel" : "✈️ Auswärtsspiel"}
+              {next.home === me ? tr("tour.home") : tr("tour.away")}
             </Text>
             <Pressable style={styles.play} onPress={onPlayNext}>
-              <Text style={styles.playText}>SPIEL STARTEN ▶</Text>
+              <Text style={styles.playText}>{tr("tour.startMatch")}</Text>
             </Pressable>
           </View>
         ) : null}
 
-        <Table group="NORD" title="GRUPPE NORD" />
-        <Table group="SUED" title="GRUPPE SÜD" />
+        {/* the player's schedule: past results + upcoming fixtures */}
+        <View style={styles.tableBox}>
+          <Text style={styles.tableTitle}>{tr("tour.schedule")}</Text>
+          {mySchedule.map((f) => (
+            <KoLine key={f.id} f={f} me={me} label={tr("tour.roundShort", { r: f.round })} />
+          ))}
+        </View>
+
+        <Table group="A" title={tr("tour.groupA")} />
+        <Table group="B" title={tr("tour.groupB")} />
 
         {sf.length > 0 && (
           <View style={styles.bracket}>
-            <Text style={styles.tableTitle}>K.-O.-RUNDE</Text>
+            <Text style={styles.tableTitle}>{tr("tour.koRound")}</Text>
             {sf.map((f, i) => (
-              <KoLine key={f.id} f={f} me={me} label={`HF ${i + 1}`} />
+              <KoLine key={f.id} f={f} me={me} label={tr("tour.sfShort", { n: i + 1 })} />
             ))}
-            {fin && <KoLine f={fin} me={me} label="FINALE" />}
+            {fin && <KoLine f={fin} me={me} label={tr("tour.final")} />}
           </View>
         )}
 
         {t.phase !== "DONE" && (
-          <Pressable style={styles.newCareer} onPress={confirmNew}>
-            <Text style={styles.newCareerText}>↻ NEUE KARRIERE</Text>
+          <Pressable style={styles.newCareer} onPress={onNewTournament}>
+            <Text style={styles.newCareerText}>{tr("tour.newTournament")}</Text>
           </Pressable>
         )}
       </ScrollView>
@@ -154,11 +163,20 @@ function Row({ r, pos, mine, qualifies }: { r: StandRow; pos: number; mine: bool
 
 function KoLine({ f, me, label }: { f: Fixture; me: string; label: string }) {
   const done = f.played;
+  // colour the score from the player's perspective when they took part
+  let scoreColor = "#fff";
+  if (done && (f.home === me || f.away === me)) {
+    const myScore = f.home === me ? f.homeScore : f.awayScore;
+    const oppScore = f.home === me ? f.awayScore : f.homeScore;
+    scoreColor = myScore > oppScore ? "#4ade80" : "#f87171";
+  }
   return (
     <View style={styles.koRow}>
       <Text style={styles.koLabel}>{label}</Text>
       <Text style={[styles.koTeam, f.home === me && styles.nextMine]}>{teamById(f.home).city}</Text>
-      <Text style={styles.koScore}>{done ? `${f.homeScore}:${f.awayScore}` : "–"}</Text>
+      <Text style={[styles.koScore, { color: scoreColor }]}>
+        {done ? `${f.homeScore}:${f.awayScore}` : "–"}
+      </Text>
       <Text style={[styles.koTeam, f.away === me && styles.nextMine]}>{teamById(f.away).city}</Text>
     </View>
   );

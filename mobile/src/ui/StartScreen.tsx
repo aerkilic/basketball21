@@ -3,6 +3,33 @@ import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { SaveMeta } from "../game/storage";
 import { useMenuInsets } from "./layout";
+import { useI18n, LangSetting, SUPPORTED_LANGS, LANG_NAMES } from "../i18n";
+
+function LanguagePicker() {
+  const { t, setting, setSetting } = useI18n();
+  const options: { key: LangSetting; label: string }[] = [
+    { key: "system", label: t("lang.system") },
+    ...SUPPORTED_LANGS.map((l) => ({ key: l as LangSetting, label: LANG_NAMES[l] })),
+  ];
+  return (
+    <View style={styles.langWrap}>
+      <Text style={styles.langLabel}>{t("lang.label")}</Text>
+      <View style={styles.langRow}>
+        {options.map((o) => (
+          <Pressable
+            key={o.key}
+            onPress={() => setSetting(o.key)}
+            style={[styles.langChip, setting === o.key && styles.langChipActive]}
+          >
+            <Text style={[styles.langChipText, setting === o.key && styles.langChipTextActive]}>
+              {o.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 export function StartScreen({
   saveMeta,
@@ -18,39 +45,43 @@ export function StartScreen({
   onTournament: () => void;
 }) {
   const pad = useMenuInsets();
+  const { t } = useI18n();
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={[styles.scroll, pad]}>
-        <Text style={styles.kicker}>STREET BASKETBALL</Text>
-        <Text style={styles.title}>BASKETBALL 21</Text>
-        <Text style={styles.sub}>2 gegen 2 · ein Korb · dein Court</Text>
+        <Text style={styles.kicker}>{t("app.kicker")}</Text>
+        <Text style={styles.title}>{t("app.title")}</Text>
+        <Text style={styles.sub}>{t("start.sub")}</Text>
 
         <Pressable style={styles.primary} onPress={onNew}>
-          <Text style={styles.primaryText}>SCHNELLES SPIEL ▶</Text>
+          <Text style={styles.primaryText}>{t("start.quickGame")}</Text>
         </Pressable>
 
         <Pressable style={styles.career} onPress={onTournament}>
-          <Text style={styles.careerText}>🏆 KARRIERE / TURNIER</Text>
-          {hasTournament && <Text style={styles.careerMeta}>Turnier läuft — fortsetzen</Text>}
+          <Text style={styles.careerText}>{t("start.career")}</Text>
+          {hasTournament && <Text style={styles.careerMeta}>{t("start.tournamentRunning")}</Text>}
         </Pressable>
 
         {saveMeta && (
           <Pressable style={styles.secondary} onPress={onContinue}>
-            <Text style={styles.secondaryText}>WEITERSPIELEN</Text>
+            <Text style={styles.secondaryText}>{t("start.continue")}</Text>
             <Text style={styles.secondaryMeta}>
-              {saveMeta.scoreUser} : {saveMeta.scoreCpu} · {saveMeta.mode}
+              {saveMeta.scoreUser} : {saveMeta.scoreCpu} ·{" "}
+              {saveMeta.timeMode ? t("setup.time") : t("hud.target", { n: saveMeta.scoreTarget })}
             </Text>
           </Pressable>
         )}
 
         <View style={styles.help}>
-          <Text style={styles.helpTitle}>STEUERUNG</Text>
-          <Text style={styles.helpLine}>Joystick (links) laufen · W Sprint · X Crossover</Text>
-          <Text style={styles.helpLine}>T = Trick (Zufall: No-Look-/Beine-Pass oder Drive zum Korb)</Text>
-          <Text style={styles.helpLine}>Angriff: D halten = Wurf (Timing!) · S Pass · A Korbangriff</Text>
-          <Text style={styles.helpLine}>Abwehr: A Block · D Steal · S Spieler wechseln</Text>
-          <Text style={styles.helpLine}>Pause: oben rechts</Text>
+          <Text style={styles.helpTitle}>{t("start.controls")}</Text>
+          <Text style={styles.helpLine}>{t("start.ctrl1")}</Text>
+          <Text style={styles.helpLine}>{t("start.ctrl2")}</Text>
+          <Text style={styles.helpLine}>{t("start.ctrl3")}</Text>
+          <Text style={styles.helpLine}>{t("start.ctrl4")}</Text>
+          <Text style={styles.helpLine}>{t("start.ctrl5")}</Text>
         </View>
+
+        <LanguagePicker />
       </ScrollView>
     </View>
   );
@@ -106,4 +137,18 @@ const styles = StyleSheet.create({
   },
   helpTitle: { color: "#fbbf24", fontWeight: "900", letterSpacing: 2, marginBottom: 8 },
   helpLine: { color: "#cbd5e1", fontSize: 13, marginVertical: 2 },
+  langWrap: { marginTop: 24, width: "100%", maxWidth: 560, alignItems: "center" },
+  langLabel: { color: "#fbbf24", fontWeight: "900", letterSpacing: 2, fontSize: 12, marginBottom: 8 },
+  langRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
+  langChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  langChipActive: { backgroundColor: "#fbbf24", borderColor: "#fbbf24" },
+  langChipText: { color: "#e5e7eb", fontWeight: "800", fontSize: 13 },
+  langChipTextActive: { color: "#1a1206" },
 });

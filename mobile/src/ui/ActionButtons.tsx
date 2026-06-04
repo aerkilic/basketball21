@@ -5,6 +5,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import { InputManager } from "../game/InputManager";
+import { useI18n } from "../i18n";
 
 interface Props {
   input: InputManager;
@@ -49,14 +50,15 @@ function Btn({
 }
 
 export function ActionButtons({ input, onBall }: Props) {
+  const { t } = useI18n();
   return (
     <View style={styles.wrap}>
       {/* dedicated crossover + sprint column */}
       <View style={styles.crossCol}>
-        <Btn label="X" sub={onBall ? "CROSS" : "—"} color="#7c3aed" size={60} onIn={() => input.pressSpecial()} />
+        <Btn label="X" sub={onBall ? t("btn.cross") : t("btn.none")} color="#7c3aed" size={60} onIn={() => input.pressSpecial()} />
         <Btn
           label="W"
-          sub="SPRINT"
+          sub={t("btn.sprint")}
           color="#f59e0b"
           size={60}
           onIn={() => input.setSprint(true)}
@@ -69,20 +71,20 @@ export function ActionButtons({ input, onBall }: Props) {
         <View style={styles.dRow}>
           <Btn
             label="A"
-            sub={onBall ? "SPRUNG" : "BLOCK"}
+            sub={onBall ? t("btn.jump") : t("btn.block")}
             color="#0ea5e9"
             onIn={() => input.setJump(true)}
             onOut={() => input.setJump(false)}
           />
         </View>
         <View style={[styles.dRow, styles.midRow]}>
-          <Btn label="S" sub={onBall ? "PASS" : "WECHSEL"} color="#22c55e" onIn={() => input.pressPass()} />
+          <Btn label="S" sub={onBall ? t("btn.pass") : t("btn.switch")} color="#22c55e" onIn={() => input.pressPass()} />
           <View style={{ width: 70 }} />
         </View>
         <View style={styles.dRow}>
           <Btn
             label="D"
-            sub={onBall ? "WURF" : "STEAL"}
+            sub={onBall ? t("btn.shoot") : t("btn.steal")}
             color="#ef4444"
             size={86}
             onIn={() => input.setShoot(true)}

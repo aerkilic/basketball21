@@ -1,6 +1,7 @@
 // PauseMenu: overlay shown when the game is paused (top-right pause button).
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
+import { useI18n } from "../i18n";
 
 export function PauseButton({ onPress }: { onPress: () => void }) {
   return (
@@ -20,6 +21,7 @@ export function PauseMenu({
   onSave: () => Promise<void> | void;
   onQuit: () => void;
 }) {
+  const { t } = useI18n();
   const [saved, setSaved] = useState(false);
   const doSave = async () => {
     await onSave();
@@ -29,12 +31,12 @@ export function PauseMenu({
   return (
     <View style={styles.overlay}>
       <View style={styles.card}>
-        <Text style={styles.title}>PAUSE</Text>
+        <Text style={styles.title}>{t("pause.title")}</Text>
         <Pressable style={[styles.btn, { backgroundColor: "#ef4444" }]} onPress={onResume}>
-          <Text style={styles.btnText}>FORTSETZEN</Text>
+          <Text style={styles.btnText}>{t("pause.resume")}</Text>
         </Pressable>
         <Pressable style={[styles.btn, { backgroundColor: "#2563eb" }]} onPress={doSave}>
-          <Text style={styles.btnText}>{saved ? "GESPEICHERT ✓" : "SPEICHERN"}</Text>
+          <Text style={styles.btnText}>{saved ? t("pause.saved") : t("pause.save")}</Text>
         </Pressable>
         <Pressable
           style={[styles.btn, { backgroundColor: "rgba(255,255,255,0.12)" }]}
@@ -43,10 +45,10 @@ export function PauseMenu({
             onQuit();
           }}
         >
-          <Text style={styles.btnText}>SPEICHERN & BEENDEN</Text>
+          <Text style={styles.btnText}>{t("pause.saveQuit")}</Text>
         </Pressable>
         <Pressable style={styles.quit} onPress={onQuit}>
-          <Text style={styles.quitText}>Beenden ohne Speichern</Text>
+          <Text style={styles.quitText}>{t("pause.quitNoSave")}</Text>
         </Pressable>
       </View>
     </View>

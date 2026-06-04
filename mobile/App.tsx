@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { Simulation } from "./src/game/Simulation";
-import { MatchConfig, PlayerKind } from "./src/game/constants";
+import { MatchConfig, PlayerKind, BackdropKind } from "./src/game/constants";
 import { GameState } from "./src/game/types";
 import {
   Tournament,
@@ -26,9 +26,8 @@ import {
   getSaveMeta,
   clearSave,
   SaveMeta,
-  saveTournament,
-  loadTournament,
-  clearTournament,
+  loadTournaments,
+  upsertTournament,
   loadEternal,
   saveEternal,
 } from "./src/game/storage";
@@ -41,7 +40,9 @@ import { GameOverScreen } from "./src/ui/GameOverScreen";
 import { PauseButton, PauseMenu } from "./src/ui/PauseMenu";
 import { ProfileScreen } from "./src/ui/ProfileScreen";
 import { TournamentScreen } from "./src/ui/TournamentScreen";
+import { CareerHubScreen } from "./src/ui/CareerHubScreen";
 import { EternalTableScreen } from "./src/ui/EternalTableScreen";
+import { I18nProvider } from "./src/i18n";
 
 const EMPTY_HUD: HudSnapshot = {
   scoreUser: 0,
@@ -61,7 +62,15 @@ const EMPTY_HUD: HudSnapshot = {
   messages: [],
 };
 
-type Screen = "start" | "setup" | "loading" | "playing" | "profile" | "tournament" | "eternal";
+type Screen =
+  | "start"
+  | "setup"
+  | "loading"
+  | "playing"
+  | "careerHub"
+  | "profile"
+  | "tournament"
+  | "eternal";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("start");
@@ -69,8 +78,10 @@ export default function App() {
   const [foulsEnabled, setFoulsEnabled] = useState(true);
   const [paused, setPaused] = useState(false);
   const [saveMeta, setSaveMeta] = useState<SaveMeta | null>(null);
-  const [tour, setTour] = useState<Tournament | null>(null);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tour, setTour] = useState<Tournament | null>(null); // the one being played
   const [eternal, setEternal] = useState<Record<string, EternalRow>>({});
+  const [backdrop, setBackdrop] = useState<BackdropKind>("classic");
 
   const simRef = useRef<Simulation | null>(null);
   const configRef = useRef<MatchConfig | null>(null);
@@ -84,7 +95,7 @@ export default function App() {
   useEffect(() => {
     refreshMeta();
     loadEternal().then(setEternal);
-    loadTournament().then(setTour);
+    loadTournaments().then(setTournaments);
   }, [refreshMeta]);
 
   // clear the quick-match save once that match is over
@@ -110,6 +121,7 @@ export default function App() {
       inTournamentRef.current = false;
       configRef.current = cfg;
       setFoulsEnabled(cfg.fouls);
+      setBackdrop(cfg.backdrop ?? "classic");
       goLoading(() => {
         if (!simRef.current) simRef.current = new Simulation(cfg);
         else simRef.current.reset(cfg);
@@ -123,6 +135,7 @@ export default function App() {
     if (!saved) return;
     inTournamentRef.current = false;
     setFoulsEnabled(saved.foulsEnabled);
+    setBackdrop(saved.backdrop ?? "classic");
     goLoading(() => {
       if (!simRef.current) simRef.current = new Simulation(configFromState(saved));
       simRef.current.loadState(saved);
@@ -130,19 +143,24 @@ export default function App() {
   }, [goLoading]);
 
   // ---- tournament ----
-  const openTournament = useCallback(() => {
-    if (tour) setScreen("tournament");
-    else setScreen("profile");
-  }, [tour]);
+  // tapping Career/Tournament always opens the hub (continue existing or start new)
+  const openTournament = useCallback(() => setScreen("careerHub"), []);
+
+  // continue a saved tournament from the hub
+  const continueExisting = useCallback((t: Tournament) => {
+    setTour(t);
+    setScreen("tournament");
+  }, []);
 
   const startTournament = useCallback(
-    (profile: Profile) => {
-      const t = createTournament(profile);
+    async (profile: Profile, leagueId: string) => {
+      const t = createTournament(profile, leagueId);
+      const list = await upsertTournament(t, tournaments); // trims to 5, drops oldest
+      setTournaments(list);
       setTour(t);
-      saveTournament(t);
       setScreen("tournament");
     },
-    []
+    [tournaments]
   );
 
   const playNextFixture = useCallback(() => {
@@ -153,6 +171,7 @@ export default function App() {
     inTournamentRef.current = true;
     configRef.current = cfg;
     setFoulsEnabled(cfg.fouls);
+    setBackdrop(cfg.backdrop ?? "classic");
     goLoading(() => {
       if (!simRef.current) simRef.current = new Simulation(cfg);
       else simRef.current.reset(cfg);
@@ -169,14 +188,15 @@ export default function App() {
       setEternal(updated);
       saveEternal(updated);
     }
-    await saveTournament(tour);
+    const list = await upsertTournament(tour, tournaments); // persist progress
+    setTournaments(list);
     setTour({ ...tour });
     inTournamentRef.current = false;
     setScreen("tournament");
-  }, [tour, eternal]);
+  }, [tour, tournaments, eternal]);
 
+  // "new tournament" from inside the hub or a finished tournament -> profile setup
   const newTournament = useCallback(() => {
-    clearTournament();
     setTour(null);
     setScreen("profile");
   }, []);
@@ -218,13 +238,14 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+    <I18nProvider>
     <GestureHandlerRootView style={styles.root}>
       <StatusBar hidden />
 
       {screen === "start" && (
         <StartScreen
           saveMeta={saveMeta}
-          hasTournament={!!tour && tour.phase !== "DONE"}
+          hasTournament={tournaments.length > 0}
           onNew={() => setScreen("setup")}
           onContinue={continueSaved}
           onTournament={openTournament}
@@ -233,8 +254,17 @@ export default function App() {
 
       {screen === "setup" && <SetupScreen onStart={startNew} onBack={() => setScreen("start")} />}
 
+      {screen === "careerHub" && (
+        <CareerHubScreen
+          tournaments={tournaments}
+          onContinue={continueExisting}
+          onNew={newTournament}
+          onBack={() => setScreen("start")}
+        />
+      )}
+
       {screen === "profile" && (
-        <ProfileScreen onStart={startTournament} onBack={() => setScreen("start")} />
+        <ProfileScreen onStart={startTournament} onBack={() => setScreen("careerHub")} />
       )}
 
       {screen === "tournament" && tour && (
@@ -243,19 +273,22 @@ export default function App() {
           onPlayNext={playNextFixture}
           onShowEternal={() => setScreen("eternal")}
           onNewTournament={newTournament}
-          onExit={() => setScreen("start")}
+          onExit={() => setScreen("careerHub")}
         />
       )}
 
       {screen === "eternal" && (
-        <EternalTableScreen table={eternal} onBack={() => setScreen(tour ? "tournament" : "start")} />
+        <EternalTableScreen
+          table={eternal}
+          onBack={() => setScreen(tour ? "tournament" : "careerHub")}
+        />
       )}
 
       {screen === "loading" && <LoadingScreen onDone={onLoadingDone} />}
 
       {screen === "playing" && sim && (
         <View style={styles.root}>
-          <GameCanvas sim={sim} onHud={onHud} />
+          <GameCanvas sim={sim} onHud={onHud} backdrop={backdrop} />
 
           <Hud hud={hud} foulsEnabled={foulsEnabled} />
 
@@ -282,6 +315,7 @@ export default function App() {
         </View>
       )}
     </GestureHandlerRootView>
+    </I18nProvider>
     </SafeAreaProvider>
   );
 }
@@ -290,6 +324,7 @@ function configFromState(s: GameState): MatchConfig {
   return {
     difficulty: s.difficulty,
     fouls: s.foulsEnabled,
+    backdrop: s.backdrop ?? "classic",
     mode: s.mode,
     scoreTarget: s.scoreTarget,
     timeLimit: s.timeLimit,

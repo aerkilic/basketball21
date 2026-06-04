@@ -48,7 +48,7 @@ function updateThreeSeconds(g: GameState, dt: number) {
       p.paintTime += dt;
       // warn once when crossing the 2s mark so the turnover isn't a surprise
       if (prev < 2.0 && p.paintTime >= 2.0 && p.team === "USER") {
-        pushMessage(g, "RAUS AUS DER ZONE!", 1.0);
+        pushMessage(g, "msg.outOfZone", 1.0);
       }
       if (p.paintTime >= THREE_SEC_LIMIT) {
         paintViolation(g, p);
@@ -73,7 +73,7 @@ function processScoreEvents(g: GameState) {
       else g.events.push({ type: "whistle", data: { crowd: true } });
       pushMessage(
         g,
-        e.data?.kind === "dunk" ? "DUNK! +2" : pts === 3 ? "DREIER! +3" : "TREFFER +2",
+        e.data?.kind === "dunk" ? "msg.dunk" : pts === 3 ? "msg.three" : "msg.basket",
         1.6
       );
 
@@ -92,8 +92,8 @@ function endGame(g: GameState, winner: TeamId | null) {
   g.winner = winner;
   g.draw = winner === null;
   g.events.push({ type: "buzzer" });
-  if (winner === null) pushMessage(g, "UNENTSCHIEDEN", 5);
-  else pushMessage(g, winner === "USER" ? "DU GEWINNST! 🏆" : "CPU GEWINNT", 5);
+  if (winner === null) pushMessage(g, "msg.draw", 5);
+  else pushMessage(g, winner === "USER" ? "msg.youWin" : "msg.cpuWins", 5);
 }
 
 function advancePhase(g: GameState, dt: number) {
@@ -110,7 +110,7 @@ function advancePhase(g: GameState, dt: number) {
   g.phaseTimer += dt;
   switch (g.phase) {
     case "TIPOFF":
-      if (g.phaseTimer === dt) pushMessage(g, "STREET BALL — BIS 21!", 1.4);
+      if (g.phaseTimer === dt) pushMessage(g, "msg.tipoff", 1.4);
       if (g.phaseTimer > 1.0) {
         g.phase = "LIVE";
       }
@@ -219,7 +219,7 @@ export function travelingViolation(g: GameState, p: Player) {
   g.phase = "DEAD";
   g.phaseTimer = 0;
   g.events.push({ type: "whistle" });
-  pushMessage(g, "SCHRITTFEHLER!", 1.6);
+  pushMessage(g, "msg.traveling", 1.6);
 }
 
 // 24-second violation: offense never got a shot off -> turnover at the top.
@@ -238,7 +238,7 @@ export function shotClockViolation(g: GameState) {
   g.phaseTimer = 0;
   g.shotClock = SHOT_CLOCK;
   g.events.push({ type: "whistle" });
-  pushMessage(g, "24 SEKUNDEN!", 1.6);
+  pushMessage(g, "msg.shotClock", 1.6);
 }
 
 // 3-seconds-in-the-paint: offensive player camped in the key -> turnover at the top.
@@ -251,7 +251,7 @@ export function paintViolation(g: GameState, p: Player) {
   g.phase = "DEAD";
   g.phaseTimer = 0;
   g.events.push({ type: "whistle" });
-  pushMessage(g, "3 SEKUNDEN!", 1.6);
+  pushMessage(g, "msg.threeSec", 1.6);
 }
 
 // Out of bounds: the team that didn't touch it last inbounds from behind the line
@@ -329,5 +329,5 @@ export function inboundBall(g: GameState, x: number, z: number) {
   }
 
   g.events.push({ type: "whistle" });
-  pushMessage(g, `AUS — ${team === "USER" ? "DEIN" : "CPU"} BALL`, 1.5);
+  pushMessage(g, "msg.outOfBounds", 1.5, { who: team });
 }

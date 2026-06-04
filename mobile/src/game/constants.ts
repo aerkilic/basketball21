@@ -142,6 +142,9 @@ export const TRAVEL_DIST = 2.5; // ~3 steps gathered without shooting = travelin
 // ---- Match configuration (chosen on the setup screen) ----
 export type GameMode = "score" | "time";
 
+// Background scenery the match is played in.
+export type BackdropKind = "classic" | "cappadocia" | "novisad";
+
 export interface TeamConfig {
   players: [PlayerKind, PlayerKind];
   jersey: string;
@@ -150,6 +153,7 @@ export interface TeamConfig {
 export interface MatchConfig {
   difficulty: Difficulty;
   fouls: boolean;
+  backdrop: BackdropKind;
   mode: GameMode;
   scoreTarget: number; // used in "score" mode
   timeLimit: number; // seconds, used in "time" mode
@@ -185,6 +189,7 @@ export const TEAM_PRESETS: { name: string; players: [PlayerKind, PlayerKind]; de
 export const DEFAULT_CONFIG: MatchConfig = {
   difficulty: "NORMAL",
   fouls: true,
+  backdrop: "classic",
   mode: "score",
   scoreTarget: 21,
   timeLimit: 10 * 60,

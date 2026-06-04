@@ -39,7 +39,7 @@ export function switchActivePlayer(g: GameState): boolean {
   other.isUserControlled = true;
   other.isActive = true;
   g.events.push({ type: "switch", team: "USER" });
-  pushMessage(g, "WECHSEL", 0.8);
+  pushMessage(g, "msg.switch", 0.8);
   return true;
 }
 

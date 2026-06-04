@@ -89,6 +89,7 @@ export function createGameState(config: MatchConfig): GameState {
     score: { USER: 0, CPU: 0 },
     fouls: { USER: 0, CPU: 0 },
     foulsEnabled: config.fouls,
+    backdrop: config.backdrop ?? "classic",
     difficulty: config.difficulty,
     mode: config.mode,
     scoreTarget: config.scoreTarget,
@@ -128,7 +129,14 @@ export const teammates = (g: GameState, p: Player): Player[] =>
 export const opponents = (g: GameState, team: TeamId): Player[] =>
   g.players.filter((q) => q.team !== team);
 
-export function pushMessage(g: GameState, text: string, t = 1.6) {
-  g.messages.unshift({ text, t });
+// Messages are stored as translation keys (+ optional params); the HUD localizes
+// them at render time.
+export function pushMessage(
+  g: GameState,
+  key: string,
+  t = 1.6,
+  params?: Record<string, string | number>
+) {
+  g.messages.unshift({ key, params, t });
   if (g.messages.length > 3) g.messages.pop();
 }

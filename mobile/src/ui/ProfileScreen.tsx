@@ -1,79 +1,91 @@
-// ProfileScreen: enter name + nickname and pick your club for a new tournament.
+// ProfileScreen: enter a nickname and pick your club for a new tournament.
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from "react-native";
-import { TEAMS, Profile } from "../game/tournament";
+import { Profile, leagueForLang } from "../game/tournament";
+import { BackdropKind } from "../game/constants";
 import { useMenuInsets } from "./layout";
+import { useI18n } from "../i18n";
 
 export function ProfileScreen({
   onStart,
   onBack,
 }: {
-  onStart: (p: Profile) => void;
+  onStart: (p: Profile, leagueId: string) => void;
   onBack: () => void;
 }) {
-  const [name, setName] = useState("");
   const [nick, setNick] = useState("");
   const [teamId, setTeamId] = useState<string | null>(null);
+  const [backdrop, setBackdrop] = useState<BackdropKind>("classic");
   const pad = useMenuInsets();
+  const { t, lang } = useI18n();
 
-  const ready = name.trim().length > 0 && nick.trim().length > 0 && teamId;
-
-  const TeamGrid = ({ group }: { group: "NORD" | "SUED" }) => (
-    <View style={styles.grid}>
-      {TEAMS.filter((t) => t.group === group).map((t) => (
-        <Pressable
-          key={t.id}
-          onPress={() => setTeamId(t.id)}
-          style={[styles.team, teamId === t.id && styles.teamActive]}
-        >
-          <View style={[styles.swatch, { backgroundColor: t.color }]} />
-          <Text style={[styles.teamCity, teamId === t.id && styles.teamCityActive]}>{t.city}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
+  // team pool depends on the app language (e.g. Turkish clubs for Turkish)
+  const league = leagueForLang(lang);
+  const ready = nick.trim().length > 0 && teamId;
 
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={[styles.scroll, pad]}>
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.back}>
-            <Text style={styles.backText}>‹ Zurück</Text>
+            <Text style={styles.backText}>{t("common.back")}</Text>
           </Pressable>
-          <Text style={styles.title}>KARRIERE</Text>
+          <Text style={styles.title}>{t("profile.title")}</Text>
           <View style={{ width: 60 }} />
         </View>
 
-        <Text style={styles.label}>Name</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder="Dein Name"
-          placeholderTextColor="#6b7280"
-          maxLength={18}
-        />
-        <Text style={styles.label}>Nickname</Text>
+        <Text style={styles.label}>{t("profile.nickname")}</Text>
         <TextInput
           style={styles.input}
           value={nick}
           onChangeText={setNick}
-          placeholder="z. B. Ballin"
+          placeholder={t("profile.nicknamePh")}
           placeholderTextColor="#6b7280"
           maxLength={14}
         />
 
-        <Text style={styles.section}>Dein Verein — Gruppe Süd</Text>
-        <TeamGrid group="SUED" />
-        <Text style={styles.section}>Gruppe Nord</Text>
-        <TeamGrid group="NORD" />
+        <Text style={styles.section}>{t("profile.club")}</Text>
+        <View style={styles.grid}>
+          {league.teams.map((tm) => (
+            <Pressable
+              key={tm.id}
+              onPress={() => setTeamId(tm.id)}
+              style={[styles.team, teamId === tm.id && styles.teamActive]}
+            >
+              <View style={[styles.swatch, { backgroundColor: tm.color }]} />
+              <Text style={[styles.teamCity, teamId === tm.id && styles.teamCityActive]}>{tm.city}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text style={styles.section}>{t("setup.backdrop")}</Text>
+        <View style={styles.grid}>
+          <Pressable
+            onPress={() => setBackdrop("classic")}
+            style={[styles.team, backdrop === "classic" && styles.teamActive]}
+          >
+            <Text style={[styles.teamCity, backdrop === "classic" && styles.teamCityActive]}>{t("backdrop.classic")}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setBackdrop("cappadocia")}
+            style={[styles.team, backdrop === "cappadocia" && styles.teamActive]}
+          >
+            <Text style={[styles.teamCity, backdrop === "cappadocia" && styles.teamCityActive]}>{t("backdrop.cappadocia")}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setBackdrop("novisad")}
+            style={[styles.team, backdrop === "novisad" && styles.teamActive]}
+          >
+            <Text style={[styles.teamCity, backdrop === "novisad" && styles.teamCityActive]}>{t("backdrop.novisad")}</Text>
+          </Pressable>
+        </View>
 
         <Pressable
           style={[styles.play, !ready && styles.playOff]}
           disabled={!ready}
-          onPress={() => onStart({ name: name.trim(), nickname: nick.trim(), teamId: teamId! })}
+          onPress={() => onStart({ nickname: nick.trim(), teamId: teamId!, backdrop }, league.id)}
         >
-          <Text style={styles.playText}>TURNIER STARTEN ▶</Text>
+          <Text style={styles.playText}>{t("profile.start")}</Text>
         </Pressable>
       </ScrollView>
     </View>

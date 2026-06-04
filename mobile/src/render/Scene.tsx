@@ -11,6 +11,9 @@ import { PlayerFigure } from "./PlayerFigure";
 import { Fans } from "./Fans";
 import { Sound, SfxName } from "../audio/SoundManager";
 import { GameEvent } from "../game/types";
+import { BackdropKind } from "../game/constants";
+import { CappadociaScene } from "./CappadociaBackdrop";
+import { NoviSadScene } from "./NoviSadBackdrop";
 
 export interface HudSnapshot {
   scoreUser: number;
@@ -27,7 +30,7 @@ export interface HudSnapshot {
   userName: string;
   cpuName: string;
   homeIsUser: boolean;
-  messages: string[];
+  messages: { key: string; params?: Record<string, string | number> }[];
 }
 
 const EVENT_SFX: Partial<Record<GameEvent["type"], SfxName>> = {
@@ -102,7 +105,7 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
       userName: g.userName,
       cpuName: g.cpuName,
       homeIsUser: g.homeIsUser,
-      messages: g.messages.map((m) => m.text),
+      messages: g.messages.map((m) => ({ key: m.key, params: m.params })),
     };
     const key = JSON.stringify(snap);
     if (key !== lastHud.current) {
@@ -114,24 +117,49 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
   return null;
 }
 
-export function Scene({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => void }) {
+export function Scene({
+  sim,
+  onHud,
+  backdrop = "classic",
+}: {
+  sim: Simulation;
+  onHud: (s: HudSnapshot) => void;
+  backdrop?: BackdropKind;
+}) {
+  const cappadocia = backdrop === "cappadocia";
+  const novisad = backdrop === "novisad";
+  const outdoor = cappadocia || novisad;
   return (
     <>
       <Stepper sim={sim} onHud={onHud} />
 
-      <ambientLight intensity={0.65} />
-      <hemisphereLight args={["#bcd4ff", "#3a3326", 0.6]} />
+      {/* warm sunrise for Cappadocia, bright daylight for Novi Sad, cool arena light otherwise */}
+      <ambientLight intensity={outdoor ? 0.9 : 0.65} />
+      <hemisphereLight
+        args={
+          cappadocia
+            ? ["#ffe6c4", "#b59a73", 0.8]
+            : novisad
+            ? ["#cfe3f2", "#5f6b4f", 0.85]
+            : ["#bcd4ff", "#3a3326", 0.6]
+        }
+      />
       <directionalLight
-        position={[6, 14, 6]}
-        intensity={1.15}
+        position={cappadocia ? [10, 10, -16] : novisad ? [-12, 16, 4] : [6, 14, 6]}
+        color={cappadocia ? "#ffdca8" : "#ffffff"}
+        intensity={outdoor ? 1.05 : 1.15}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
 
-      <fog attach="fog" args={["#1f2530", 22, 46]} />
+      {/* light haze only on the classic arena; outdoor backdrops stay clear */}
+      {!outdoor && <fog attach="fog" args={["#1f2530", 22, 46]} />}
 
-      <Court />
+      {cappadocia && <CappadociaScene />}
+      {novisad && <NoviSadScene />}
+
+      <Court backdrop={backdrop} />
       <Fans sim={sim} />
       <Hoop sim={sim} />
       <BallMesh sim={sim} />

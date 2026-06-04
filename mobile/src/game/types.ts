@@ -1,5 +1,5 @@
 import { Vec3 } from "./math";
-import { PlayerKind, PlayerStats, Difficulty } from "./constants";
+import { PlayerKind, PlayerStats, Difficulty, BackdropKind } from "./constants";
 
 export type TeamId = "USER" | "CPU";
 
@@ -135,6 +135,7 @@ export interface GameState {
   score: Score;
   fouls: { USER: number; CPU: number };
   foulsEnabled: boolean;
+  backdrop: BackdropKind;
   difficulty: Difficulty;
   // match mode / clock
   mode: "score" | "time";
@@ -155,7 +156,7 @@ export interface GameState {
   time: number; // total elapsed
   phaseTimer: number; // counts within MADE/DEAD/etc.
   shake: number; // camera/screen shake 0..1
-  messages: { text: string; t: number }[];
+  messages: { key: string; params?: Record<string, string | number>; t: number }[];
   lastScorer: TeamId | null;
   lastTouch: TeamId; // team that last had the ball (for out-of-bounds calls)
   winner: TeamId | null;
