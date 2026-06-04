@@ -15,6 +15,7 @@ export class InputManager {
   // edge requests latched until consumed by next frame
   private passEdge = false;
   private specialEdge = false;
+  private trickEdge = false;
 
   // internal previous states for edge detection
   private prevShoot = false;
@@ -39,6 +40,9 @@ export class InputManager {
   pressSpecial() {
     this.specialEdge = true;
   }
+  pressTrick() {
+    this.trickEdge = true;
+  }
 
   // Called once per simulation step. Resolves edges and clears latches.
   consume(): InputFrame {
@@ -57,19 +61,21 @@ export class InputManager {
       jump: jumpEdge,
       jumpHeld: this.jumpPressed,
       special: this.specialEdge,
+      trick: this.trickEdge,
     };
 
     this.prevShoot = this.shootPressed;
     this.prevJump = this.jumpPressed;
     this.passEdge = false;
     this.specialEdge = false;
+    this.trickEdge = false;
     return frame;
   }
 
   reset() {
     this.moveX = this.moveZ = 0;
     this.sprint = this.shootPressed = this.jumpPressed = false;
-    this.passEdge = this.specialEdge = false;
+    this.passEdge = this.specialEdge = this.trickEdge = false;
     this.prevShoot = this.prevJump = false;
   }
 }

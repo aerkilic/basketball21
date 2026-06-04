@@ -171,6 +171,7 @@ export interface InputFrame {
   jump: boolean; // A (edge)
   jumpHeld: boolean;
   special: boolean; // special dribble (edge)
+  trick: boolean; // T (edge) — random trick move
 }
 
 export type { PlayerKind };
