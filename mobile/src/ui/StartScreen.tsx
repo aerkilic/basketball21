@@ -46,6 +46,7 @@ export function StartScreen({
         <View style={styles.help}>
           <Text style={styles.helpTitle}>STEUERUNG</Text>
           <Text style={styles.helpLine}>Joystick (links) laufen · W Sprint · X Crossover</Text>
+          <Text style={styles.helpLine}>T = Trick (Zufall: No-Look-/Beine-Pass oder Drive zum Korb)</Text>
           <Text style={styles.helpLine}>Angriff: D halten = Wurf (Timing!) · S Pass · A Korbangriff</Text>
           <Text style={styles.helpLine}>Abwehr: A Block · D Steal · S Spieler wechseln</Text>
           <Text style={styles.helpLine}>Pause: oben rechts</Text>

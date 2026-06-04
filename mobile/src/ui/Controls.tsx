@@ -36,6 +36,7 @@ export function Controls({ input, onBall }: { input: InputManager; onBall: boole
     { id: "S", cx: rX - 190, cy: height - 150, r: 44, color: "#22c55e", label: "S", sub: onBall ? "PASS" : "WECHSEL", size: 74 },
     { id: "W", cx: rX - 270, cy: height - 110, r: 38, color: "#f59e0b", label: "W", sub: "SPRINT", size: 62 },
     { id: "X", cx: rX - 270, cy: height - 188, r: 38, color: "#7c3aed", label: "X", sub: onBall ? "CROSS" : "—", size: 62 },
+    { id: "T", cx: rX - 355, cy: height - 150, r: 38, color: "#ec4899", label: "T", sub: onBall ? "TRICK" : "—", size: 62 },
   ];
 
   const recompute = (touches: Touch[]) => {
@@ -85,6 +86,7 @@ export function Controls({ input, onBall }: { input: InputManager; onBall: boole
     input.setJump(now.has("A"));
     if (now.has("S") && !prev.current.has("S")) input.pressPass();
     if (now.has("X") && !prev.current.has("X")) input.pressSpecial();
+    if (now.has("T") && !prev.current.has("T")) input.pressTrick();
     prev.current = now;
 
     const map: Record<string, boolean> = {};

@@ -77,10 +77,10 @@ export function PlayerFigure({ sim, index }: { sim: Simulation; index: number })
       legSwing = 0.7;
       bodyLean = -0.1;
     } else if (p.anim === "jump") {
-      // clean two-hand vertical leap (rebound / block)
-      armRaiseL = -2.7;
-      armRaiseR = -2.85;
-      legSplit = 0.25;
+      // one-arm leap to contest — block / rebound / challenge a dunk
+      armRaiseR = -3.0; // right arm reaches high
+      armRaiseL = -0.5; // left arm stays low for balance
+      legSplit = 0.22;
       bodyLean = -0.05;
     } else if (p.anim === "steal") {
       armRaiseR = -1.5; // reach in

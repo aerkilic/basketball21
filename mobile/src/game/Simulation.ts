@@ -15,6 +15,7 @@ import { beginCharge, updateCharge, releaseShot, launchShot } from "./systems/Sh
 import { passToTeammate, switchActivePlayer, autoSelectNearestDefender } from "./systems/PassSystem";
 import { attemptSteal, attemptBlock, checkShotBlocks } from "./systems/DefenseSystem";
 import { triggerCrossover, updateDribble, dribbleSound } from "./systems/DribbleSystem";
+import { doTrick } from "./systems/TrickSystem";
 import { updateCrowd } from "./systems/Crowd";
 
 export class Simulation {
@@ -173,6 +174,9 @@ function applyUserControl(g: GameState, p: Player, f: InputFrame, dt: number) {
 
     // special: through-the-legs crossover
     if (f.special) triggerCrossover(g, p);
+
+    // T: random trick (behind-back pass / leg pass / drive to the rim)
+    if (f.trick) doTrick(g, p);
   } else {
     // --- defense ---
     if (f.jump) attemptBlock(g, p); // A: jump / block
