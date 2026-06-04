@@ -167,9 +167,10 @@ export default function App() {
     inTournamentRef.current = true;
     configRef.current = cfg;
     setFoulsEnabled(cfg.fouls);
-    // resume the saved match if it belongs to this exact tournament fixture
+    // resume the saved in-progress match for this tournament (there's only one at a
+    // time, and it's cleared when the fixture finishes)
     const saved = await loadTournamentMatch();
-    const resume = saved && saved.tournamentId === tour.id && saved.fixtureId === f.id ? saved : null;
+    const resume = saved && saved.tournamentId === tour.id ? saved : null;
     setBackdrop((resume?.backdrop as BackdropKind) ?? cfg.backdrop ?? "classic");
     goLoading(() => {
       if (!simRef.current) simRef.current = new Simulation(cfg);
