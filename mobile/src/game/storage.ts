@@ -70,21 +70,19 @@ function withId(t: Tournament): Tournament {
 const byRecency = (a: Tournament, b: Tournament) => b.updatedAt - a.updatedAt;
 
 // Load all saved tournaments, newest first, migrating a legacy single save if present.
+// only tournaments in the current (league/groups) format are usable
+const isCompatible = (t: Tournament): boolean =>
+  !!t && !!t.groups && Array.isArray(t.groups.A) && typeof t.rounds === "number";
+
 export async function loadTournaments(): Promise<Tournament[]> {
   try {
     const raw = await AsyncStorage.getItem(T_LIST_KEY);
     if (raw) {
-      const list = (JSON.parse(raw) as Tournament[]).map(withId);
+      const list = (JSON.parse(raw) as Tournament[]).filter(isCompatible).map(withId);
       return list.sort(byRecency).slice(0, MAX_TOURNAMENTS);
     }
-    // migrate the old single-tournament slot, if any
-    const legacy = await AsyncStorage.getItem(T_KEY);
-    if (legacy) {
-      const t = withId(JSON.parse(legacy) as Tournament);
-      await AsyncStorage.setItem(T_LIST_KEY, JSON.stringify([t]));
-      await AsyncStorage.removeItem(T_KEY);
-      return [t];
-    }
+    // legacy single-tournament slot used an incompatible format — discard it
+    await AsyncStorage.removeItem(T_KEY).catch(() => {});
     return [];
   } catch {
     return [];

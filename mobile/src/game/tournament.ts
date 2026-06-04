@@ -47,9 +47,32 @@ const TURKISH_TEAMS: Team[] = [
   { id: "tr_izm", city: "İzmir", color: "#d97706", players: ["NORMAL", "SMALL"], strength: 0.57 },
 ];
 
+// ---- Serbian cities (used when the app language is Serbian), 6 teams ----
+const SERBIAN_TEAMS: Team[] = [
+  { id: "rs_bg", city: "Beograd", color: "#c4302b", players: ["BIG", "SMALL"], strength: 0.85 },
+  { id: "rs_ns", city: "Novi Sad", color: "#1d4ed8", players: ["NORMAL", "NORMAL"], strength: 0.7 },
+  { id: "rs_nis", city: "Niš", color: "#0f766e", players: ["NORMAL", "SMALL"], strength: 0.64 },
+  { id: "rs_kg", city: "Kragujevac", color: "#b45309", players: ["BIG", "NORMAL"], strength: 0.6 },
+  { id: "rs_np", city: "Novi Pazar", color: "#15803d", players: ["SMALL", "SMALL"], strength: 0.54 },
+  { id: "rs_su", city: "Subotica", color: "#7c3aed", players: ["NORMAL", "NORMAL"], strength: 0.58 },
+];
+
+// ---- Ukrainian cities (used when the app language is Ukrainian), 6 teams,
+// names in Ukrainian ----
+const UKRAINIAN_TEAMS: Team[] = [
+  { id: "ua_kyiv", city: "Київ", color: "#2563eb", players: ["BIG", "SMALL"], strength: 0.85 },
+  { id: "ua_lviv", city: "Львів", color: "#ca8a04", players: ["NORMAL", "NORMAL"], strength: 0.7 },
+  { id: "ua_dnipro", city: "Дніпро", color: "#dc2626", players: ["BIG", "NORMAL"], strength: 0.68 },
+  { id: "ua_donetsk", city: "Донецьк", color: "#ea580c", players: ["NORMAL", "SMALL"], strength: 0.66 },
+  { id: "ua_uzh", city: "Ужгород", color: "#0f766e", players: ["SMALL", "SMALL"], strength: 0.55 },
+  { id: "ua_odesa", city: "Одеса", color: "#0ea5e9", players: ["NORMAL", "NORMAL"], strength: 0.6 },
+];
+
 export const LEAGUES: Record<string, League> = {
   de: { id: "de", teams: GERMAN_TEAMS },
   tr: { id: "tr", teams: TURKISH_TEAMS },
+  sr: { id: "sr", teams: SERBIAN_TEAMS },
+  uk: { id: "uk", teams: UKRAINIAN_TEAMS },
 };
 
 // language -> league (German is the default for en/uk/sr/de)
@@ -60,7 +83,7 @@ export function leagueById(id: string): League {
   return LEAGUES[id] ?? LEAGUES.de;
 }
 
-const ALL_TEAMS: Team[] = [...GERMAN_TEAMS, ...TURKISH_TEAMS];
+const ALL_TEAMS: Team[] = [...GERMAN_TEAMS, ...TURKISH_TEAMS, ...SERBIAN_TEAMS, ...UKRAINIAN_TEAMS];
 export const teamById = (id: string): Team =>
   ALL_TEAMS.find((t) => t.id === id) ?? { id, city: id, color: "#888", players: ["NORMAL", "NORMAL"], strength: 0.5 };
 
@@ -79,8 +102,11 @@ export interface Fixture {
 export interface Profile {
   nickname: string;
   teamId: string;
-  backdrop: BackdropKind;
 }
+
+// stadium/backdrop is drawn at random for every tournament match
+const BACKDROPS: BackdropKind[] = ["classic", "cappadocia", "novisad"];
+const randomBackdrop = (): BackdropKind => BACKDROPS[Math.floor(Math.random() * BACKDROPS.length)];
 
 export interface Tournament {
   id: string; // unique save-slot id
