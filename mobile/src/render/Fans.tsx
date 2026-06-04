@@ -48,6 +48,7 @@ export function Fans({ sim, backdrop = "classic" }: { sim: Simulation; backdrop?
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const tmpColor = useMemo(() => new THREE.Color(), []);
   const lastColor = useRef("");
+  const lastClothColor = useRef("");
 
   const fans = useMemo<FanDef[]>(() => {
     const out: FanDef[] = [];
@@ -111,14 +112,18 @@ export function Fans({ sim, backdrop = "classic" }: { sim: Simulation; backdrop?
     const cl = cloths.current;
     if (!b || !h || !hr) return;
 
-    // shirts + flags follow the HOME team's jersey colour (home crowd)
-    const homeColor = g.homeIsUser ? g.players[0].jersey : g.players[2].jersey;
-    // only commit once the flag mesh exists too, so flags always get recoloured
-    if (homeColor !== lastColor.current && cl) {
-      lastColor.current = homeColor;
-      const base = new THREE.Color(homeColor);
+    // shirts + flags always use YOUR team's colour — your fans fill the stands
+    // (players[0]/[1] are the USER team). Novi Pazar -> green, München -> red, etc.
+    const fanColor = g.players[0].jersey;
+    const base = new THREE.Color(fanColor);
+    if (fanColor !== lastColor.current) {
+      lastColor.current = fanColor;
       for (let i = 0; i < count; i++) b.setColorAt(i, tmpColor.copy(base).multiplyScalar(fans[i].shade));
       if (b.instanceColor) b.instanceColor.needsUpdate = true;
+    }
+    // recolour flags independently (their mesh may mount a frame after the bodies)
+    if (cl && fanColor !== lastClothColor.current) {
+      lastClothColor.current = fanColor;
       for (let s = 0; s < flagOwners.length; s++)
         cl.setColorAt(s, tmpColor.copy(base).multiplyScalar(fans[flagOwners[s]].shade));
       if (cl.instanceColor) cl.instanceColor.needsUpdate = true;
