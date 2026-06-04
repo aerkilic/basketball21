@@ -392,7 +392,7 @@ export function matchConfigFor(t: Tournament, f: Fixture): MatchConfig {
   return {
     difficulty: "NORMAL",
     fouls: true,
-    backdrop: t.profile.backdrop ?? "classic",
+    backdrop: randomBackdrop(), // random stadium each tournament match
     mode: "score",
     scoreTarget: 21,
     timeLimit: 600,

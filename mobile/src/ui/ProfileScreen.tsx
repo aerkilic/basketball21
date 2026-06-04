@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from "react-native";
 import { Profile, leagueForLang } from "../game/tournament";
-import { BackdropKind } from "../game/constants";
 import { useMenuInsets } from "./layout";
 import { useI18n } from "../i18n";
 
@@ -15,7 +14,6 @@ export function ProfileScreen({
 }) {
   const [nick, setNick] = useState("");
   const [teamId, setTeamId] = useState<string | null>(null);
-  const [backdrop, setBackdrop] = useState<BackdropKind>("classic");
   const pad = useMenuInsets();
   const { t, lang } = useI18n();
 
@@ -58,32 +56,10 @@ export function ProfileScreen({
           ))}
         </View>
 
-        <Text style={styles.section}>{t("setup.backdrop")}</Text>
-        <View style={styles.grid}>
-          <Pressable
-            onPress={() => setBackdrop("classic")}
-            style={[styles.team, backdrop === "classic" && styles.teamActive]}
-          >
-            <Text style={[styles.teamCity, backdrop === "classic" && styles.teamCityActive]}>{t("backdrop.classic")}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setBackdrop("cappadocia")}
-            style={[styles.team, backdrop === "cappadocia" && styles.teamActive]}
-          >
-            <Text style={[styles.teamCity, backdrop === "cappadocia" && styles.teamCityActive]}>{t("backdrop.cappadocia")}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setBackdrop("novisad")}
-            style={[styles.team, backdrop === "novisad" && styles.teamActive]}
-          >
-            <Text style={[styles.teamCity, backdrop === "novisad" && styles.teamCityActive]}>{t("backdrop.novisad")}</Text>
-          </Pressable>
-        </View>
-
         <Pressable
           style={[styles.play, !ready && styles.playOff]}
           disabled={!ready}
-          onPress={() => onStart({ nickname: nick.trim(), teamId: teamId!, backdrop }, league.id)}
+          onPress={() => onStart({ nickname: nick.trim(), teamId: teamId! }, league.id)}
         >
           <Text style={styles.playText}>{t("profile.start")}</Text>
         </Pressable>
