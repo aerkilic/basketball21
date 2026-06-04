@@ -55,7 +55,9 @@ const EVENT_SFX: Partial<Record<GameEvent["type"], SfxName>> = {
 };
 
 const CAMERA_BACK_OFFSET = 0.6;
-const OUTDOOR_CAMERA_TARGET_Y = 3.0;
+const OUTDOOR_CAMERA_TARGET_Y = 2.6;
+const OUTDOOR_FOV = 66; // wider lens outdoors so the whole court fits
+const INDOOR_FOV = 56;
 
 function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => void }) {
   const { camera } = useThree();
@@ -94,9 +96,18 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
       g.backdrop === "petrovaradin" ||
       !!cityBackdropById(g.backdrop);
 
+    // zoom out for outdoor backdrops (wider lens + a touch more distance/height) so
+    // the whole court stays in frame alongside the scenery
+    const cam = camera as THREE.PerspectiveCamera;
+    const wantFov = outdoor ? OUTDOOR_FOV : INDOOR_FOV;
+    if (Math.abs(cam.fov - wantFov) > 0.1) {
+      cam.fov = wantFov;
+      cam.updateProjectionMatrix();
+    }
+
     const desiredX = tx * 0.4 + sx;
-    const desiredY = (outdoor ? 7.0 : 8.6) + sy;
-    const desiredZ = tz * 0.35 + (outdoor ? 8.0 : 6.8) + CAMERA_BACK_OFFSET;
+    const desiredY = (outdoor ? 7.8 : 8.6) + sy;
+    const desiredZ = tz * 0.35 + (outdoor ? 10.5 : 6.8) + CAMERA_BACK_OFFSET;
     camera.position.x += (desiredX - camera.position.x) * 0.08;
     camera.position.y += (desiredY - camera.position.y) * 0.08;
     camera.position.z += (desiredZ - camera.position.z) * 0.08;
