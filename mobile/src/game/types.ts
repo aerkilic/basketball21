@@ -119,6 +119,7 @@ export interface GameEvent {
     | "shoot"
     | "switch"
     | "cheer"
+    | "chant"
     | "whistle"
     | "buzzer";
   team?: TeamId;
@@ -163,6 +164,9 @@ export interface GameState {
   winner: TeamId | null;
   draw: boolean; // time mode ended level
   events: GameEvent[]; // drained each frame by audio/fx
+  // set when this match is part of a tournament, so an in-progress save can be resumed
+  tournamentId?: string;
+  fixtureId?: string;
 }
 
 export interface InputFrame {

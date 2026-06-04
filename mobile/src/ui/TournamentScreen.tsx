@@ -34,8 +34,19 @@ export function TournamentScreen({
     rules.mode === "time"
       ? tr("setup.minSuffix", { m: Math.round(rules.timeLimit / 60) })
       : tr("hud.target", { n: rules.scoreTarget });
-  const sf = t.knockouts.filter((f) => f.stage === "SF");
-  const fin = t.knockouts.find((f) => f.stage === "FINAL");
+  const isEuro = t.leagueId === "europe";
+  const groupKeys = (t.groupKeys ?? (Object.keys(t.groups) as GroupKey[])) as GroupKey[];
+  const groupTitle: Record<GroupKey, string> = {
+    A: tr("tour.groupA"),
+    B: tr("tour.groupB"),
+    C: tr("tour.groupC"),
+    D: tr("tour.groupD"),
+  };
+  const stageTitle = (s: string) =>
+    s === "QF" ? tr("tour.quarterfinal") : s === "SF" ? tr("tour.semifinal") : tr("tour.final");
+  const koStages = (["QF", "SF", "FINAL"] as const).filter((s) =>
+    t.knockouts.some((f) => f.stage === s)
+  );
 
   // the player's own matches across the group stage, in order (results + upcoming)
   const mySchedule = t.fixtures
@@ -79,7 +90,9 @@ export function TournamentScreen({
         {/* Next match / result */}
         {t.phase === "DONE" ? (
           <View style={styles.champ}>
-            <Text style={styles.champLabel}>{tr("tour.championLabel")}</Text>
+            <Text style={styles.champLabel}>
+              {isEuro ? tr("tour.euroChampion") : tr("tour.championLabel")}
+            </Text>
             <Text style={styles.champTeam}>{teamById(t.championId!).city}</Text>
             <Text style={styles.champSub}>
               {t.championId === me ? tr("tour.youWonTournament") : tr("tour.tournamentOver")}
@@ -93,9 +106,7 @@ export function TournamentScreen({
             <Text style={styles.nextLabel}>
               {t.phase === "GROUP"
                 ? tr("tour.groupPhase", { r: t.round, n: t.rounds })
-                : t.phase === "SF"
-                ? tr("tour.semifinal")
-                : tr("tour.final")}
+                : stageTitle(t.phase)}
             </Text>
             <View style={styles.nextRow}>
               <Text style={[styles.nextTeam, next.home === me && styles.nextMine]}>
@@ -110,7 +121,7 @@ export function TournamentScreen({
               {next.home === me ? tr("tour.home") : tr("tour.away")}
             </Text>
             <Pressable style={styles.play} onPress={onPlayNext}>
-              <Text style={styles.playText}>{tr("tour.startMatch")}</Text>
+              <Text style={styles.playText}>{tr("tour.resume")}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -123,16 +134,25 @@ export function TournamentScreen({
           ))}
         </View>
 
-        <Table group="A" title={tr("tour.groupA")} />
-        <Table group="B" title={tr("tour.groupB")} />
+        {groupKeys.map((k) => (
+          <Table key={k} group={k} title={groupTitle[k]} />
+        ))}
 
-        {sf.length > 0 && (
+        {koStages.length > 0 && (
           <View style={styles.bracket}>
             <Text style={styles.tableTitle}>{tr("tour.koRound")}</Text>
-            {sf.map((f, i) => (
-              <KoLine key={f.id} f={f} me={me} label={tr("tour.sfShort", { n: i + 1 })} />
-            ))}
-            {fin && <KoLine f={fin} me={me} label={tr("tour.final")} />}
+            {koStages.map((stage) => {
+              const games = t.knockouts.filter((f) => f.stage === stage);
+              return games.map((f, i) => {
+                const label =
+                  stage === "QF"
+                    ? tr("tour.qfShort", { n: i + 1 })
+                    : stage === "SF"
+                    ? tr("tour.sfShort", { n: i + 1 })
+                    : tr("tour.final");
+                return <KoLine key={f.id} f={f} me={me} label={label} />;
+              });
+            })}
           </View>
         )}
 

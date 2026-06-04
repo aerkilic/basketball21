@@ -13,6 +13,7 @@ export type SfxName =
   | "steal"
   | "whistle"
   | "cheer"
+  | "chant"
   | "buzzer";
 
 const FILES: Record<SfxName, any> = {
@@ -26,6 +27,7 @@ const FILES: Record<SfxName, any> = {
   steal: require("../../assets/sounds/steal.wav"),
   whistle: require("../../assets/sounds/whistle.wav"),
   cheer: require("../../assets/sounds/cheer.wav"),
+  chant: require("../../assets/sounds/chant.wav"),
   buzzer: require("../../assets/sounds/buzzer.wav"),
 };
 

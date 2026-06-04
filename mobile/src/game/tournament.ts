@@ -5,8 +5,9 @@
 import { GameMode, MatchConfig, PlayerKind, SCORE_OPTIONS, TIME_OPTIONS } from "./constants";
 import { backdropForTeam } from "./cityBackgrounds";
 
-export type GroupKey = "A" | "B";
-export type Stage = "GROUP" | "SF" | "FINAL";
+export type GroupKey = "A" | "B" | "C" | "D";
+export type Stage = "GROUP" | "QF" | "SF" | "FINAL";
+export type Phase = "GROUP" | "QF" | "SF" | "FINAL" | "DONE";
 
 export interface Team {
   id: string;
@@ -68,14 +69,35 @@ const UKRAINIAN_TEAMS: Team[] = [
   { id: "ua_odesa", city: "Одеса", color: "#0ea5e9", players: ["NORMAL", "NORMAL"], strength: 0.6 },
 ];
 
+// per-country league pools, used both directly and to build the European field
+const COUNTRY_LEAGUES: { id: string; teams: Team[] }[] = [
+  { id: "de", teams: GERMAN_TEAMS },
+  { id: "tr", teams: TURKISH_TEAMS },
+  { id: "sr", teams: SERBIAN_TEAMS },
+  { id: "uk", teams: UKRAINIAN_TEAMS },
+];
+
+const top = (teams: Team[], n: number) =>
+  [...teams].sort((a, b) => b.strength - a.strength).slice(0, n);
+
+// Europe: the 4 strongest clubs from each country (16 teams)
+const EUROPE_TEAMS: Team[] = COUNTRY_LEAGUES.flatMap((l) => top(l.teams, 4));
+
 export const LEAGUES: Record<string, League> = {
   de: { id: "de", teams: GERMAN_TEAMS },
   tr: { id: "tr", teams: TURKISH_TEAMS },
   sr: { id: "sr", teams: SERBIAN_TEAMS },
   uk: { id: "uk", teams: UKRAINIAN_TEAMS },
+  europe: { id: "europe", teams: EUROPE_TEAMS },
 };
 
-export const LEAGUE_IDS = ["de", "tr", "sr", "uk"] as const;
+export const LEAGUE_IDS = ["de", "tr", "sr", "uk", "europe"] as const;
+
+// which country pool a team id belongs to (for the European pot draw)
+function countryOf(id: string): string {
+  for (const l of COUNTRY_LEAGUES) if (l.teams.some((t) => t.id === id)) return l.id;
+  return "de";
+}
 
 // language -> default league (German is the fallback for languages without a league)
 export function leagueForLang(lang: string): League {
@@ -134,15 +156,19 @@ export interface Tournament {
   updatedAt: number; // last time this tournament was created/played (for slot ordering)
   leagueId: string;
   rules?: TournamentRules; // optional only so legacy saves can be migrated safely
-  groups: { A: string[]; B: string[] }; // random draw of team ids per group
+  groups: Partial<Record<GroupKey, string[]>>; // random draw of team ids per group
+  groupKeys?: GroupKey[]; // active groups (["A","B"] normally, ["A".."D"] for Europe)
   rounds: number; // number of group-stage rounds
   profile: Profile;
-  phase: "GROUP" | "SF" | "FINAL" | "DONE";
+  phase: Phase;
   round: number; // current group round (1..rounds)
   fixtures: Fixture[]; // group stage
-  knockouts: Fixture[]; // SF + final
+  knockouts: Fixture[]; // QF / SF / final
   championId: string | null;
 }
+
+const groupKeysOf = (t: Tournament): GroupKey[] =>
+  t.groupKeys ?? (Object.keys(t.groups) as GroupKey[]);
 
 export function tournamentRules(t: Pick<Tournament, "rules">): TournamentRules {
   return normalizeTournamentRules(t.rules);
@@ -208,18 +234,39 @@ export function createTournament(
 ): Tournament {
   fxId = 0;
   const league = leagueById(leagueId);
-  const ids = shuffle(league.teams.map((t) => t.id));
-  const half = Math.ceil(ids.length / 2);
-  const A = ids.slice(0, half);
-  const B = ids.slice(half);
-  const rounds = roundsFor(A.length);
-  const fixtures = [...genGroupFixtures("A", A), ...genGroupFixtures("B", B)];
+
+  let groupKeys: GroupKey[];
+  const groups: Partial<Record<GroupKey, string[]>> = {};
+
+  if (league.id === "europe") {
+    // four groups of four — pot draw so each group has one club per country
+    groupKeys = ["A", "B", "C", "D"];
+    groupKeys.forEach((k) => (groups[k] = []));
+    const byCountry: Record<string, string[]> = {};
+    for (const tm of league.teams) (byCountry[countryOf(tm.id)] ||= []).push(tm.id);
+    for (const ids of Object.values(byCountry)) {
+      shuffle(ids).forEach((id, i) => {
+        if (i < 4) groups[groupKeys[i]]!.push(id);
+      });
+    }
+  } else {
+    // two groups, randomly split
+    groupKeys = ["A", "B"];
+    const ids = shuffle(league.teams.map((t) => t.id));
+    const half = Math.ceil(ids.length / 2);
+    groups.A = ids.slice(0, half);
+    groups.B = ids.slice(half);
+  }
+
+  const rounds = roundsFor(groups[groupKeys[0]]!.length);
+  const fixtures = groupKeys.flatMap((k) => genGroupFixtures(k, groups[k]!));
   const t: Tournament = {
     id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     updatedAt: Date.now(),
     leagueId: league.id,
     rules: normalizeTournamentRules(rules),
-    groups: { A, B },
+    groups,
+    groupKeys,
     rounds,
     profile,
     phase: "GROUP",
@@ -310,10 +357,8 @@ const involvesPlayer = (t: Tournament, f: Fixture): boolean =>
 export function getPlayerFixture(t: Tournament): Fixture | null {
   if (t.phase === "GROUP")
     return t.fixtures.find((f) => f.round === t.round && involvesPlayer(t, f) && !f.played) ?? null;
-  if (t.phase === "SF")
-    return t.knockouts.find((f) => f.stage === "SF" && involvesPlayer(t, f) && !f.played) ?? null;
-  if (t.phase === "FINAL")
-    return t.knockouts.find((f) => f.stage === "FINAL" && involvesPlayer(t, f) && !f.played) ?? null;
+  if (t.phase === "QF" || t.phase === "SF" || t.phase === "FINAL")
+    return t.knockouts.find((f) => f.stage === t.phase && involvesPlayer(t, f) && !f.played) ?? null;
   return null;
 }
 
@@ -339,26 +384,40 @@ function skipPlayerByes(t: Tournament) {
   }
 }
 
-// Build the cross semifinals from final group standings.
-function buildKnockouts(t: Tournament) {
-  const a = groupStandings(t, "A");
-  const b = groupStandings(t, "B");
-  const a1 = a[0].teamId, a2 = a[1].teamId;
-  const b1 = b[0].teamId, b2 = b[1].teamId;
-  const sfRound = t.rounds + 1;
-  const m1 = randHome(a1, b2);
-  const m2 = randHome(b1, a2);
-  t.knockouts = [
-    mkFix("SF", "KO", sfRound, m1.home, m1.away),
-    mkFix("SF", "KO", sfRound, m2.home, m2.away),
-  ];
-}
+// knockout stage order; the first stage depends on how many teams qualify
+const STAGE_ORDER: Stage[] = ["QF", "SF", "FINAL"];
+const nextStage = (s: Stage): Stage | null => {
+  const i = STAGE_ORDER.indexOf(s);
+  return i >= 0 && i < STAGE_ORDER.length - 1 ? STAGE_ORDER[i + 1] : null;
+};
+const roundForStage = (t: Tournament, s: Stage): number => t.rounds + 1 + STAGE_ORDER.indexOf(s);
 
-function buildFinal(t: Tournament) {
-  if (t.knockouts.some((f) => f.stage === "FINAL")) return;
-  const sfs = t.knockouts.filter((f) => f.stage === "SF");
-  const f = randHome(winnerOf(sfs[0]), winnerOf(sfs[1]));
-  t.knockouts.push(mkFix("FINAL", "KO", t.rounds + 2, f.home, f.away));
+// Seed the first knockout round from the final group standings. Two groups -> cross
+// semifinals; four groups -> cross quarterfinals (one club per country per group).
+function seedFirstRound(t: Tournament): { stage: Stage; pairs: [string, string][] } {
+  const keys = groupKeysOf(t);
+  const s: Record<string, StandRow[]> = {};
+  keys.forEach((k) => (s[k] = groupStandings(t, k)));
+  if (keys.length >= 4) {
+    const [A, B, C, D] = ["A", "B", "C", "D"].map((k) => s[k]);
+    return {
+      stage: "QF",
+      pairs: [
+        [A[0].teamId, B[1].teamId],
+        [C[0].teamId, D[1].teamId],
+        [B[0].teamId, A[1].teamId],
+        [D[0].teamId, C[1].teamId],
+      ],
+    };
+  }
+  const A = s["A"], B = s["B"];
+  return {
+    stage: "SF",
+    pairs: [
+      [A[0].teamId, B[1].teamId],
+      [B[0].teamId, A[1].teamId],
+    ],
+  };
 }
 
 function setChampion(t: Tournament) {
@@ -367,19 +426,41 @@ function setChampion(t: Tournament) {
   t.phase = "DONE";
 }
 
-function enterKnockouts(t: Tournament) {
-  buildKnockouts(t);
-  const playerSF = t.knockouts.find((f) => f.stage === "SF" && involvesPlayer(t, f) && !f.played);
-  if (playerSF) {
-    t.phase = "SF";
+// Make the player play this knockout stage; if they aren't in it, auto-play onward.
+function advanceKnockouts(t: Tournament, stage: Stage) {
+  const playerGame = t.knockouts.find((f) => f.stage === stage && involvesPlayer(t, f) && !f.played);
+  if (playerGame) {
+    t.phase = stage;
     return;
   }
-  // player didn't qualify — auto-play the whole bracket
-  t.knockouts.forEach((f) => !f.played && simFixture(f, tournamentRules(t)));
-  buildFinal(t);
-  const fin = t.knockouts.find((f) => f.stage === "FINAL")!;
-  if (!fin.played) simFixture(fin, tournamentRules(t));
-  setChampion(t);
+  for (const f of t.knockouts) if (f.stage === stage && !f.played) simFixture(f, tournamentRules(t));
+  proceedKnockout(t, stage);
+}
+
+// Build the next round from the winners of a completed stage (or crown the champion).
+function proceedKnockout(t: Tournament, completed: Stage) {
+  const ns = nextStage(completed);
+  if (!ns) {
+    setChampion(t);
+    return;
+  }
+  const winners = t.knockouts.filter((f) => f.stage === completed).map(winnerOf);
+  const round = roundForStage(t, ns);
+  for (let i = 0; i < winners.length; i += 2) {
+    const { home, away } = randHome(winners[i], winners[i + 1]);
+    t.knockouts.push(mkFix(ns, "KO", round, home, away));
+  }
+  advanceKnockouts(t, ns);
+}
+
+function enterKnockouts(t: Tournament) {
+  const { stage, pairs } = seedFirstRound(t);
+  const round = roundForStage(t, stage);
+  for (const [a, b] of pairs) {
+    const { home, away } = randHome(a, b);
+    t.knockouts.push(mkFix(stage, "KO", round, home, away));
+  }
+  advanceKnockouts(t, stage);
 }
 
 // Record the player's match result (from the USER-side perspective) and advance.
@@ -407,18 +488,11 @@ function resolveAfter(t: Tournament) {
     } else {
       enterKnockouts(t);
     }
-  } else if (t.phase === "SF") {
-    for (const f of t.knockouts) if (f.stage === "SF" && !f.played) simFixture(f, tournamentRules(t));
-    buildFinal(t);
-    const fin = t.knockouts.find((f) => f.stage === "FINAL")!;
-    if (involvesPlayer(t, fin) && !fin.played) {
-      t.phase = "FINAL";
-    } else {
-      if (!fin.played) simFixture(fin, tournamentRules(t));
-      setChampion(t);
-    }
-  } else if (t.phase === "FINAL") {
-    setChampion(t);
+  } else if (t.phase === "QF" || t.phase === "SF" || t.phase === "FINAL") {
+    const stage = t.phase;
+    // finish the rest of this knockout round, then build/advance the next one
+    for (const f of t.knockouts) if (f.stage === stage && !f.played) simFixture(f, tournamentRules(t));
+    proceedKnockout(t, stage);
   }
 }
 

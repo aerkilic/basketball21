@@ -4,6 +4,7 @@ import { GameState } from "./types";
 import { Tournament, normalizeTournamentRules } from "./tournament";
 
 const KEY = "bb21_savegame_v1";
+const TM_KEY = "bb21_tournament_match_v1"; // an in-progress tournament match
 const T_KEY = "bb21_tournament_v1"; // legacy single-tournament slot (migrated on load)
 const T_LIST_KEY = "bb21_tournaments_v2"; // up to MAX_TOURNAMENTS saved tournaments
 
@@ -53,6 +54,31 @@ export async function getSaveMeta(): Promise<SaveMeta | null> {
 export async function clearSave(): Promise<void> {
   try {
     await AsyncStorage.removeItem(KEY);
+  } catch {}
+}
+
+// ---- in-progress tournament match (tagged with tournamentId + fixtureId) ----
+export async function saveTournamentMatch(state: GameState): Promise<void> {
+  try {
+    const clean: GameState = { ...state, events: [] };
+    await AsyncStorage.setItem(TM_KEY, JSON.stringify(clean));
+  } catch (e) {
+    console.warn("saveTournamentMatch failed", e);
+  }
+}
+
+export async function loadTournamentMatch(): Promise<GameState | null> {
+  try {
+    const raw = await AsyncStorage.getItem(TM_KEY);
+    return raw ? (JSON.parse(raw) as GameState) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearTournamentMatch(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(TM_KEY);
   } catch {}
 }
 

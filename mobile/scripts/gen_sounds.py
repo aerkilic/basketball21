@@ -115,14 +115,33 @@ st = hp(noise(n), 0.5) * expdecay(n, 12)
 st[: dur(0.01)] += 1.0
 save("steal", st, 0.6)
 
-# --- whistle: two-tone with vibrato ---
-n = dur(0.42)
+# --- whistle: clear referee pea-whistle (pure tone + fast trill, crisp attack) ---
+n = dur(0.5)
 t = np.arange(n) / SR
-vib = np.sin(2 * np.pi * 22 * t) * 60
-wh = np.sin(2 * np.pi * (2650 + vib) * t) + 0.5 * np.sin(2 * np.pi * (3300 + vib) * t)
-wh *= env(n, 0.02, 0.0, 0.9, 0.1)
-wh[-dur(0.08):] *= np.linspace(1, 0, dur(0.08))
-save("whistle", wh, 0.7)
+trill = 1.0 + 0.18 * (np.sin(2 * np.pi * 16 * t) > 0)  # fast on/off "pea" warble
+f0 = 3150.0
+wh = np.sin(2 * np.pi * f0 * t * trill) + 0.35 * np.sin(2 * np.pi * 2 * f0 * t * trill)
+wh += np.sin(2 * np.pi * (f0 * 1.5) * t) * 0.12  # airy overtone for clarity
+# crisp attack, steady body, quick release — two short pips read very clearly
+amp = np.ones(n)
+a = dur(0.008)
+amp[:a] = np.linspace(0, 1, a)
+amp[-dur(0.06):] *= np.linspace(1, 0, dur(0.06))
+wh *= amp
+save("whistle", wh, 0.85)
+
+# --- chant: rhythmic home-crowd "let's go" (pulsed crowd voices) ---
+n = dur(2.0)
+t = np.arange(n) / SR
+bed = lp(noise(n), 0.04) * 0.5  # crowd murmur bed
+beat = 1.6  # chant pulses per second
+pulse = (np.sin(2 * np.pi * beat * t) * 0.5 + 0.5) ** 3  # punchy on-beats
+voice = (np.sin(2 * np.pi * 196 * t) + 0.6 * np.sin(2 * np.pi * 247 * t)
+         + 0.4 * np.sin(2 * np.pi * 392 * t))  # low vocal "ohh" chord
+ch = (bed + voice * 0.5) * pulse
+ch += hp(noise(n), 0.6) * 0.08 * pulse  # clap-like sparkle on the beat
+ch *= np.concatenate([np.linspace(0, 1, dur(0.3)), np.ones(n - dur(0.6)), np.linspace(1, 0, dur(0.3))])
+save("chant", ch, 0.7)
 
 # --- cheer: crowd swell (filtered noise) ---
 n = dur(0.9)

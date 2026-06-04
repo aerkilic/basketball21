@@ -11,6 +11,7 @@ function statusLabel(t: Tournament, tr: TFunc): string {
   if (t.phase === "DONE") {
     return `🏆 ${t.championId ? teamById(t.championId).city : ""}`.trim();
   }
+  if (t.phase === "QF") return tr("tour.quarterfinal");
   if (t.phase === "SF") return tr("tour.semifinal");
   if (t.phase === "FINAL") return tr("tour.final");
   return tr("tour.groupPhase", { r: t.round, n: t.rounds });

@@ -50,6 +50,7 @@ const EVENT_SFX: Partial<Record<GameEvent["type"], SfxName>> = {
   whistle: "whistle",
   foul: "whistle",
   cheer: "cheer",
+  chant: "chant",
   buzzer: "buzzer",
 };
 
@@ -72,6 +73,7 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
       if (!sfx) continue;
       let vol = e.type === "dribble" ? 0.5 : 1;
       if (e.data?.crowd) vol = e.data?.soft ? 0.35 : 0.5; // crowd ambience softer
+      if (e.type === "chant") vol = 0.6; // home-crowd chants stay present
       Sound.play(sfx, vol);
     }
 

@@ -13,6 +13,14 @@ import {
 import { useMenuInsets } from "./layout";
 import { useI18n } from "../i18n";
 
+const LEAGUE_FLAGS: Record<string, string> = {
+  de: "🇩🇪",
+  tr: "🇹🇷",
+  sr: "🇷🇸",
+  uk: "🇺🇦",
+  europe: "🇪🇺",
+};
+
 function OptionChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={[styles.leagueChip, active && styles.leagueChipActive]}>
@@ -107,7 +115,7 @@ export function ProfileScreen({
               style={[styles.leagueChip, league.id === id && styles.leagueChipActive]}
             >
               <Text style={[styles.leagueChipText, league.id === id && styles.leagueChipTextActive]}>
-                {t(`league.${id}`)}
+                {LEAGUE_FLAGS[id]} {t(`league.${id}`)}
               </Text>
             </Pressable>
           ))}

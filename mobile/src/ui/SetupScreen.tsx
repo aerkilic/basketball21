@@ -1,5 +1,5 @@
-// SetupScreen: pick mode (points/time), score/time amount, difficulty,
-// both teams (player selection) and jerseys, then start.
+// SetupScreen: pick mode (points/time), score/time amount, difficulty, then your
+// team and the opponent — each chosen by country flag → city — and the scenery.
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import {
@@ -12,19 +12,19 @@ import {
   JERSEYS,
   SCORE_OPTIONS,
   TIME_OPTIONS,
-  TEAM_PRESETS,
 } from "../game/constants";
 import { backdropForTeam } from "../game/cityBackgrounds";
 import { LEAGUE_IDS, LEAGUES, Team, leagueForLang } from "../game/tournament";
 import { useMenuInsets } from "./layout";
 import { useI18n } from "../i18n";
 
-// preset name -> description translation key
-const DESC_KEY: Record<string, string> = {
-  Classic: "teamdesc.classic",
-  "Twin Towers": "teamdesc.towers",
-  Speed: "teamdesc.speed",
-  Allround: "teamdesc.allround",
+// country flags for the league picker
+const FLAGS: Record<string, string> = {
+  de: "🇩🇪",
+  tr: "🇹🇷",
+  sr: "🇷🇸",
+  uk: "🇺🇦",
+  europe: "🇪🇺",
 };
 
 const SPECIAL_BACKDROPS: SpecialBackdropKind[] = [
@@ -46,12 +46,55 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
   );
 }
 
-function Swatch({ color, active, onPress }: { color: string; active: boolean; onPress: () => void }) {
+const leagueOf = (id: string): { id: string; teams: Team[] } => LEAGUES[id] ?? LEAGUES.de;
+
+// Country flag row -> city cards. Used for both the player's team and the opponent.
+function CountryTeamPicker({
+  leagueId,
+  teamId,
+  onLeague,
+  onTeam,
+}: {
+  leagueId: string;
+  teamId: string;
+  onLeague: (id: string) => void;
+  onTeam: (id: string) => void;
+}) {
+  const { t } = useI18n();
+  const league = leagueOf(leagueId);
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.swatch, { backgroundColor: color }, active && styles.swatchActive]}
-    />
+    <>
+      <View style={styles.flagRow}>
+        {LEAGUE_IDS.map((id) => {
+          const active = league.id === id;
+          return (
+            <Pressable
+              key={id}
+              onPress={() => onLeague(id)}
+              style={[styles.flagChip, active && styles.flagChipActive]}
+            >
+              <Text style={styles.flag}>{FLAGS[id]}</Text>
+              <Text style={[styles.flagText, active && styles.flagTextActive]}>{t(`league.${id}`)}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.teamRow}>
+        {league.teams.map((team) => {
+          const active = teamId === team.id;
+          return (
+            <Pressable
+              key={team.id}
+              onPress={() => onTeam(team.id)}
+              style={[styles.cityCard, active && styles.cityCardActive]}
+            >
+              <View style={[styles.miniSwatch, { backgroundColor: team.color }]} />
+              <Text style={[styles.cityName, active && styles.cityNameActive]}>{team.city}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </>
   );
 }
 
@@ -62,40 +105,49 @@ export function SetupScreen({
   onStart: (c: MatchConfig) => void;
   onBack: () => void;
 }) {
+  const { t, lang } = useI18n();
+  const home = leagueForLang(lang);
+
   const [mode, setMode] = useState<GameMode>(DEFAULT_CONFIG.mode);
   const [score, setScore] = useState(DEFAULT_CONFIG.scoreTarget);
   const [minutes, setMinutes] = useState(10);
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_CONFIG.difficulty);
-  const { t, lang } = useI18n();
-  const [opponentLeagueId, setOpponentLeagueId] = useState(() => leagueForLang(lang).id);
-  const [opponentTeamId, setOpponentTeamId] = useState(() => leagueForLang(lang).teams[0].id);
-  const [backdrop, setBackdrop] = useState<BackdropSelection>("auto");
-  const [userTeam, setUserTeam] = useState(0);
-  const [userJersey, setUserJersey] = useState(DEFAULT_CONFIG.userTeam.jersey);
-  const pad = useMenuInsets();
-  const opponentLeague = LEAGUES[opponentLeagueId] ?? leagueForLang(lang);
-  const opponent = opponentLeague.teams.find((team) => team.id === opponentTeamId) ?? opponentLeague.teams[0];
 
-  const selectOpponentLeague = (id: string) => {
-    const league = LEAGUES[id] ?? opponentLeague;
-    setOpponentLeagueId(league.id);
-    setOpponentTeamId(league.teams[0].id);
+  const [userLeagueId, setUserLeagueId] = useState(home.id);
+  const [userTeamId, setUserTeamId] = useState(home.teams[0].id);
+  const [oppLeagueId, setOppLeagueId] = useState(home.id);
+  const [oppTeamId, setOppTeamId] = useState((home.teams[1] ?? home.teams[0]).id);
+  const [backdrop, setBackdrop] = useState<BackdropSelection>("auto");
+  const pad = useMenuInsets();
+
+  const userTeam = leagueOf(userLeagueId).teams.find((x) => x.id === userTeamId) ?? leagueOf(userLeagueId).teams[0];
+  const opponent = leagueOf(oppLeagueId).teams.find((x) => x.id === oppTeamId) ?? leagueOf(oppLeagueId).teams[0];
+
+  const selectLeague = (setLeague: (id: string) => void, setTeam: (id: string) => void) => (id: string) => {
+    setLeague(id);
+    setTeam(leagueOf(id).teams[0].id);
   };
 
   const start = () => {
-    const opponentBackdrop: BackdropKind = backdrop === "auto" ? backdropForTeam(opponent.id) : backdrop;
+    // your team keeps its real colour; if both clubs share it, recolour the OPPONENT
+    let oppColor = opponent.color;
+    if (oppColor.toLowerCase() === userTeam.color.toLowerCase()) {
+      oppColor = JERSEYS.find((j) => j.color.toLowerCase() !== userTeam.color.toLowerCase())?.color ?? oppColor;
+    }
+    // your team is named first -> it is the home side; AUTO scenery uses your city
+    const venueBackdrop: BackdropKind = backdrop === "auto" ? backdropForTeam(userTeam.id) : backdrop;
     const cfg: MatchConfig = {
       difficulty,
       fouls: true,
-      backdrop: opponentBackdrop,
+      backdrop: venueBackdrop,
       mode,
       scoreTarget: mode === "score" ? score : 21,
       timeLimit: mode === "time" ? minutes * 60 : DEFAULT_CONFIG.timeLimit,
-      userTeam: { players: TEAM_PRESETS[userTeam].players, jersey: userJersey },
-      cpuTeam: { players: opponent.players, jersey: opponent.color },
-      userName: t("team.you"),
+      userTeam: { players: userTeam.players, jersey: userTeam.color },
+      cpuTeam: { players: opponent.players, jersey: oppColor },
+      userName: userTeam.city,
       cpuName: opponent.city,
-      homeIsUser: false,
+      homeIsUser: true,
     };
     onStart(cfg);
   };
@@ -155,57 +207,20 @@ export function SetupScreen({
         </View>
 
         <Text style={styles.section}>{t("setup.yourTeam")}</Text>
-        <View style={styles.teamRow}>
-          {TEAM_PRESETS.map((preset, i) => (
-            <Pressable
-              key={preset.name}
-              onPress={() => setUserTeam(i)}
-              style={[styles.teamCard, userTeam === i && styles.teamCardActive]}
-            >
-              <Text style={[styles.teamName, userTeam === i && styles.teamNameActive]}>{preset.name}</Text>
-              <Text style={styles.teamDesc}>{t(DESC_KEY[preset.name] ?? "")}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={styles.label}>{t("setup.yourJersey")}</Text>
-        <View style={styles.row}>
-          {JERSEYS.map((j) => (
-            <Swatch
-              key={j.color}
-              color={j.color}
-              active={userJersey === j.color}
-              onPress={() => setUserJersey(j.color)}
-            />
-          ))}
-        </View>
+        <CountryTeamPicker
+          leagueId={userLeagueId}
+          teamId={userTeamId}
+          onLeague={selectLeague(setUserLeagueId, setUserTeamId)}
+          onTeam={setUserTeamId}
+        />
 
         <Text style={styles.section}>{t("setup.opponent")}</Text>
-        <Text style={styles.label}>{t("setup.opponentCountry")}</Text>
-        <View style={styles.row}>
-          {LEAGUE_IDS.map((id) => (
-            <Chip
-              key={id}
-              label={t(`league.${id}`)}
-              active={opponentLeague.id === id}
-              onPress={() => selectOpponentLeague(id)}
-            />
-          ))}
-        </View>
-        <Text style={styles.label}>{t("setup.opponentTeam")}</Text>
-        <View style={styles.teamRow}>
-          {opponentLeague.teams.map((team: Team) => (
-            <Pressable
-              key={team.id}
-              onPress={() => setOpponentTeamId(team.id)}
-              style={[styles.teamCard, opponent.id === team.id && styles.teamCardActive]}
-            >
-              <View style={styles.teamTitleRow}>
-                <View style={[styles.miniSwatch, { backgroundColor: team.color }]} />
-                <Text style={[styles.teamName, opponent.id === team.id && styles.teamNameActive]}>{team.city}</Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+        <CountryTeamPicker
+          leagueId={oppLeagueId}
+          teamId={oppTeamId}
+          onLeague={selectLeague(setOppLeagueId, setOppTeamId)}
+          onTeam={setOppTeamId}
+        />
 
         <Text style={styles.section}>{t("setup.backdrop")}</Text>
         <View style={styles.row}>
@@ -236,7 +251,6 @@ const styles = StyleSheet.create({
   backText: { color: "#93c5fd", fontSize: 15, fontWeight: "700" },
   title: { color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: 1 },
   section: { color: "#fbbf24", fontSize: 13, fontWeight: "900", letterSpacing: 2, marginTop: 20 },
-  label: { color: "#cbd5e1", fontSize: 12, fontWeight: "700", marginTop: 12, marginBottom: 2 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
   chip: {
     paddingHorizontal: 18,
@@ -249,30 +263,40 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: "#fbbf24", borderColor: "#fbbf24" },
   chipText: { color: "#e5e7eb", fontWeight: "800", letterSpacing: 1 },
   chipTextActive: { color: "#1a1206" },
-  teamRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
-  teamCard: {
-    paddingHorizontal: 14,
+  // flag picker
+  flagRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  flagChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+  },
+  flagChipActive: { borderColor: "#fbbf24", backgroundColor: "rgba(251,191,36,0.16)" },
+  flag: { fontSize: 18 },
+  flagText: { color: "#cbd5e1", fontWeight: "800", fontSize: 13 },
+  flagTextActive: { color: "#fbbf24" },
+  // city cards
+  teamRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  cityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.16)",
-    minWidth: 120,
   },
-  teamCardActive: { borderColor: "#fbbf24", backgroundColor: "rgba(251,191,36,0.14)" },
-  teamTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  cityCardActive: { borderColor: "#fbbf24", backgroundColor: "rgba(251,191,36,0.14)" },
   miniSwatch: { width: 16, height: 16, borderRadius: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
-  teamName: { color: "#e5e7eb", fontWeight: "900", fontSize: 15 },
-  teamNameActive: { color: "#fbbf24" },
-  teamDesc: { color: "#9ca3af", fontSize: 11, marginTop: 2 },
-  swatch: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.25)",
-  },
-  swatchActive: { borderColor: "#fff", borderWidth: 3, transform: [{ scale: 1.12 }] },
+  cityName: { color: "#e5e7eb", fontWeight: "800", fontSize: 14 },
+  cityNameActive: { color: "#fbbf24" },
   play: {
     marginTop: 30,
     backgroundColor: "#ef4444",

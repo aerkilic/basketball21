@@ -27,6 +27,9 @@ import {
   SaveMeta,
   loadTournaments,
   upsertTournament,
+  saveTournamentMatch,
+  loadTournamentMatch,
+  clearTournamentMatch,
 } from "./src/game/storage";
 import { Controls } from "./src/ui/Controls";
 import { Hud } from "./src/ui/Hud";
@@ -156,7 +159,7 @@ export default function App() {
     [tournaments]
   );
 
-  const playNextFixture = useCallback(() => {
+  const playNextFixture = useCallback(async () => {
     if (!tour) return;
     const f = getPlayerFixture(tour);
     if (!f) return;
@@ -164,10 +167,20 @@ export default function App() {
     inTournamentRef.current = true;
     configRef.current = cfg;
     setFoulsEnabled(cfg.fouls);
-    setBackdrop(cfg.backdrop ?? "classic");
+    // resume the saved match if it belongs to this exact tournament fixture
+    const saved = await loadTournamentMatch();
+    const resume = saved && saved.tournamentId === tour.id && saved.fixtureId === f.id ? saved : null;
+    setBackdrop((resume?.backdrop as BackdropKind) ?? cfg.backdrop ?? "classic");
     goLoading(() => {
       if (!simRef.current) simRef.current = new Simulation(cfg);
       else simRef.current.reset(cfg);
+      if (resume) {
+        simRef.current.loadState(resume);
+      } else {
+        // tag the fresh match so an in-progress save can be matched later
+        simRef.current.state.tournamentId = tour.id;
+        simRef.current.state.fixtureId = f.id;
+      }
     });
   }, [tour, goLoading]);
 
@@ -179,6 +192,7 @@ export default function App() {
     setTournaments(list);
     setTour({ ...tour });
     inTournamentRef.current = false;
+    await clearTournamentMatch(); // this fixture is finished
     setScreen("tournament");
   }, [tour, tournaments]);
 
@@ -207,7 +221,11 @@ export default function App() {
   }, []);
 
   const doSave = useCallback(async () => {
-    if (simRef.current) {
+    if (!simRef.current) return;
+    if (inTournamentRef.current) {
+      // tournament matches save to their own slot so they can be resumed
+      await saveTournamentMatch(simRef.current.state);
+    } else {
       await saveGame(simRef.current.state);
       refreshMeta();
     }
