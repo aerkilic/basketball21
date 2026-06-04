@@ -106,7 +106,7 @@ export interface Profile {
 }
 
 // stadium/backdrop is drawn at random for every tournament match
-const BACKDROPS: BackdropKind[] = ["classic", "cappadocia", "novisad", "beach"];
+const BACKDROPS: BackdropKind[] = ["classic", "cappadocia", "novisad", "beach", "erciyes"];
 const randomBackdrop = (): BackdropKind => BACKDROPS[Math.floor(Math.random() * BACKDROPS.length)];
 
 export interface Tournament {

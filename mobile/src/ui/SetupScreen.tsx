@@ -134,6 +134,7 @@ export function SetupScreen({
           <Chip label={t("backdrop.cappadocia")} active={backdrop === "cappadocia"} onPress={() => setBackdrop("cappadocia")} />
           <Chip label={t("backdrop.novisad")} active={backdrop === "novisad"} onPress={() => setBackdrop("novisad")} />
           <Chip label={t("backdrop.beach")} active={backdrop === "beach"} onPress={() => setBackdrop("beach")} />
+          <Chip label={t("backdrop.erciyes")} active={backdrop === "erciyes"} onPress={() => setBackdrop("erciyes")} />
         </View>
 
         <Text style={styles.section}>{t("setup.yourTeam")}</Text>

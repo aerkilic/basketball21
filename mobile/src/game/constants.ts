@@ -143,7 +143,7 @@ export const TRAVEL_DIST = 2.5; // ~3 steps gathered without shooting = travelin
 export type GameMode = "score" | "time";
 
 // Background scenery the match is played in.
-export type BackdropKind = "classic" | "cappadocia" | "novisad" | "beach";
+export type BackdropKind = "classic" | "cappadocia" | "novisad" | "beach" | "erciyes";
 
 export interface TeamConfig {
   players: [PlayerKind, PlayerKind];

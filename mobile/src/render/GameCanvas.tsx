@@ -25,6 +25,8 @@ export function GameCanvas({
       ? "#9ec6e6"
       : backdrop === "beach"
       ? "#7fc4e8"
+      : backdrop === "erciyes"
+      ? "#c8dceb"
       : "#1f2530";
   return (
     <Canvas

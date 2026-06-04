@@ -15,6 +15,7 @@ import { BackdropKind } from "../game/constants";
 import { CappadociaScene } from "./CappadociaBackdrop";
 import { NoviSadScene } from "./NoviSadBackdrop";
 import { BeachScene } from "./BeachBackdrop";
+import { ErciyesScene } from "./ErciyesBackdrop";
 
 export interface HudSnapshot {
   scoreUser: number;
@@ -81,7 +82,10 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
 
     // outdoor backdrops tilt the camera up a bit so the horizon/scenery is in view
     const outdoor =
-      g.backdrop === "cappadocia" || g.backdrop === "novisad" || g.backdrop === "beach";
+      g.backdrop === "cappadocia" ||
+      g.backdrop === "novisad" ||
+      g.backdrop === "beach" ||
+      g.backdrop === "erciyes";
 
     const desiredX = tx * 0.4 + sx;
     const desiredY = (outdoor ? 7.0 : 8.6) + sy;
@@ -138,7 +142,8 @@ export function Scene({
   const cappadocia = backdrop === "cappadocia";
   const novisad = backdrop === "novisad";
   const beach = backdrop === "beach";
-  const outdoor = cappadocia || novisad || beach;
+  const erciyes = backdrop === "erciyes";
+  const outdoor = cappadocia || novisad || beach || erciyes;
   return (
     <>
       <Stepper sim={sim} onHud={onHud} />
@@ -153,12 +158,24 @@ export function Scene({
             ? ["#cfe3f2", "#5f6b4f", 0.85]
             : beach
             ? ["#dff1ff", "#d8c79a", 0.9]
+            : erciyes
+            ? ["#e8f5ff", "#cdd6dc", 0.9]
             : ["#bcd4ff", "#3a3326", 0.6]
         }
       />
       <directionalLight
-        position={cappadocia ? [10, 10, -16] : novisad ? [-12, 16, 4] : beach ? [8, 15, -6] : [6, 14, 6]}
-        color={cappadocia ? "#ffdca8" : beach ? "#fff4e0" : "#ffffff"}
+        position={
+          cappadocia
+            ? [10, 10, -16]
+            : novisad
+            ? [-12, 16, 4]
+            : beach
+            ? [8, 15, -6]
+            : erciyes
+            ? [-8, 15, -10]
+            : [6, 14, 6]
+        }
+        color={cappadocia ? "#ffdca8" : beach ? "#fff4e0" : erciyes ? "#eef8ff" : "#ffffff"}
         intensity={outdoor ? 1.1 : 1.15}
         castShadow
         shadow-mapSize-width={1024}
@@ -171,6 +188,7 @@ export function Scene({
       {cappadocia && <CappadociaScene />}
       {novisad && <NoviSadScene />}
       {beach && <BeachScene />}
+      {erciyes && <ErciyesScene />}
 
       <Court backdrop={backdrop} />
       <Fans sim={sim} backdrop={backdrop} />
