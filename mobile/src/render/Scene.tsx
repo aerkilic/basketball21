@@ -81,8 +81,8 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
 
     // ---- broadcast camera: frames the upper (in-bounds) half, pans with action ----
     const b = g.ball.pos;
-    const tx = THREE.MathUtils.clamp(b.x * 0.6, -4.5, 4.5);
-    const tz = THREE.MathUtils.clamp(b.z, -6, 1);
+    const tx = THREE.MathUtils.clamp(b.x * 0.7, -5, 5);
+    const tz = THREE.MathUtils.clamp(b.z, -6.5, 1.4);
     const shake = g.shake;
     const sx = (Math.random() - 0.5) * shake * 0.6;
     const sy = (Math.random() - 0.5) * shake * 0.6;
@@ -105,19 +105,22 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
       cam.updateProjectionMatrix();
     }
 
-    const desiredX = tx * 0.4 + sx;
+    // camera follows the action: stronger pan with the ball, and dollies toward the
+    // rim as play drives in (z follow), with a snappier follow speed
+    const follow = 0.12;
+    const desiredX = tx * 0.6 + sx;
     // outdoor: a touch higher (slight bird's-eye) and close, not pulled far back
     const desiredY = (outdoor ? 9.0 : 8.6) + sy;
-    const desiredZ = tz * 0.35 + (outdoor ? 7.2 : 6.8) + CAMERA_BACK_OFFSET;
-    camera.position.x += (desiredX - camera.position.x) * 0.08;
-    camera.position.y += (desiredY - camera.position.y) * 0.08;
-    camera.position.z += (desiredZ - camera.position.z) * 0.08;
+    const desiredZ = tz * 0.5 + (outdoor ? 7.2 : 6.8) + CAMERA_BACK_OFFSET;
+    camera.position.x += (desiredX - camera.position.x) * follow;
+    camera.position.y += (desiredY - camera.position.y) * follow;
+    camera.position.z += (desiredZ - camera.position.z) * follow;
 
     const targetY = outdoor ? OUTDOOR_CAMERA_TARGET_Y : 1.2;
     camTarget.current.set(
-      camTarget.current.x + (tx * 0.7 - camTarget.current.x) * 0.08,
-      camTarget.current.y + (targetY - camTarget.current.y) * 0.08,
-      camTarget.current.z + (tz * 0.4 - 3.2 - camTarget.current.z) * 0.08
+      camTarget.current.x + (tx * 0.9 - camTarget.current.x) * follow,
+      camTarget.current.y + (targetY - camTarget.current.y) * follow,
+      camTarget.current.z + (tz * 0.55 - 3.2 - camTarget.current.z) * follow
     );
     camera.lookAt(camTarget.current);
 
