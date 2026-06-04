@@ -57,6 +57,8 @@ const EMPTY_HUD: HudSnapshot = {
   clock: 0,
   userName: "DU",
   cpuName: "CPU",
+  userColor: "#60a5fa",
+  cpuColor: "#f87171",
   homeIsUser: true,
   messages: [],
 };

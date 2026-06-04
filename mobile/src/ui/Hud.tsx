@@ -25,6 +25,28 @@ function fmtClock(sec: number): string {
   return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
+// perceived brightness of a #rrggbb colour (0..1)
+function luminance(hex: string): number {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return 1;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+// a coloured score; very dark team colours get a white "bubble" so the number reads
+function Score({ value, color }: { value: number; color: string }) {
+  const dark = luminance(color) < 0.28;
+  if (dark) {
+    return (
+      <View style={styles.scoreBubble}>
+        <Text style={[styles.score, { color }]}>{value}</Text>
+      </View>
+    );
+  }
+  return <Text style={[styles.score, { color }]}>{value}</Text>;
+}
+
 export function Hud({ hud, foulsEnabled }: { hud: HudSnapshot; foulsEnabled: boolean }) {
   const userBall = hud.possession === "USER";
   const { t } = useI18n();
@@ -46,7 +68,7 @@ export function Hud({ hud, foulsEnabled }: { hud: HudSnapshot; foulsEnabled: boo
               {hud.userName}
               {hud.homeIsUser ? " 🏠" : ""}
             </Text>
-            <Text style={[styles.score, { color: "#60a5fa" }]}>{hud.scoreUser}</Text>
+            <Score value={hud.scoreUser} color={hud.userColor} />
             {userBall && <Text style={styles.dot}>●</Text>}
           </View>
           <View style={styles.middle}>
@@ -61,7 +83,7 @@ export function Hud({ hud, foulsEnabled }: { hud: HudSnapshot; foulsEnabled: boo
           </View>
           <View style={[styles.team, !userBall && styles.has]}>
             {!userBall && <Text style={styles.dot}>●</Text>}
-            <Text style={[styles.score, { color: "#f87171" }]}>{hud.scoreCpu}</Text>
+            <Score value={hud.scoreCpu} color={hud.cpuColor} />
             <Text style={styles.teamName}>
               {hud.cpuName}
               {!hud.homeIsUser ? " 🏠" : ""}
@@ -101,6 +123,12 @@ const styles = StyleSheet.create({
   has: {},
   teamName: { color: "#e5e7eb", fontSize: 11, fontWeight: "800", letterSpacing: 0.3 },
   score: { fontSize: 24, fontWeight: "900", fontVariant: ["tabular-nums"] },
+  scoreBubble: {
+    backgroundColor: "#fff",
+    borderRadius: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
   dot: { color: "#fbbf24", fontSize: 11 },
   middle: { alignItems: "center", marginHorizontal: 10 },
   target: { color: "#fbbf24", fontSize: 11, fontWeight: "900", letterSpacing: 1.5 },

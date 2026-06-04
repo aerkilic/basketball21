@@ -34,6 +34,8 @@ export interface HudSnapshot {
   clock: number;
   userName: string;
   cpuName: string;
+  userColor: string;
+  cpuColor: string;
   homeIsUser: boolean;
   messages: { key: string; params?: Record<string, string | number> }[];
 }
@@ -139,6 +141,8 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
       clock: Math.ceil(g.clock),
       userName: g.userName,
       cpuName: g.cpuName,
+      userColor: g.players[0].jersey,
+      cpuColor: g.players[2].jersey,
       homeIsUser: g.homeIsUser,
       messages: g.messages.map((m) => ({ key: m.key, params: m.params })),
     };
