@@ -65,12 +65,16 @@ export function PlayerFigure({ sim, index }: { sim: Simulation; index: number })
       bodyLean = -0.05 - air * 0.05;
       legSplit = 0.2 + air * 0.1;
     } else if (p.anim === "dunk") {
-      // tomahawk: cock back low, then hammer down as we descend
-      const cock = air > 0.5 ? 1 : air * 2;
-      armRaiseR = -2.4 - cock * 0.9;
-      armRaiseL = -1.6;
-      bodyLean = -0.2;
-      legSplit = 0.5;
+      // ball overhead on the way up, then a hard arm-slam down into the rim
+      const prog = Math.max(0, Math.min(1, 1 - p.dunkT / 0.85));
+      let slam: number;
+      if (prog < 0.45) slam = -3.1; // reach high with the ball
+      else if (prog < 0.7) slam = -3.1 + ((prog - 0.45) / 0.25) * 2.7; // chop down
+      else slam = -0.4; // follow-through, hand through the hoop
+      armRaiseR = slam;
+      armRaiseL = -1.2;
+      legSplit = 0.45;
+      bodyLean = -0.1 + prog * 0.25;
     } else if (p.anim === "layup") {
       armRaiseR = -2.6;
       armRaiseL = -1.2;

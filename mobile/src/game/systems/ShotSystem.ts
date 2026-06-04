@@ -108,15 +108,20 @@ export function launchShot(g: GameState, p: Player, hold: number) {
     quality,
   };
 
-  // start position: shooter's release point
-  const start = v3(
-    p.pos.x + Math.sin(p.heading) * 0.2,
-    (kind === "dunk" ? 3.25 : 1.95) * p.stats.height + p.jumpY,
-    p.pos.z + Math.cos(p.heading) * 0.2
-  );
+  const rim = HOOP.rim;
+
+  // start position: a dunk is released right above the rim (the hand slams it in);
+  // other shots leave from the shooter's release point.
+  const start =
+    kind === "dunk"
+      ? v3(rim.x, rim.y + 0.6, rim.z + 0.45)
+      : v3(
+          p.pos.x + Math.sin(p.heading) * 0.2,
+          1.95 * p.stats.height + p.jumpY,
+          p.pos.z + Math.cos(p.heading) * 0.2
+        );
 
   // target
-  const rim = HOOP.rim;
   let target = v3(rim.x, rim.y, rim.z);
   if (!willMake) {
     const r = Math.random();
@@ -150,11 +155,15 @@ export function launchShot(g: GameState, p: Player, hold: number) {
   g.lastTouch = p.team;
   p.anim = kind === "dunk" ? "dunk" : kind === "layup" ? "layup" : "jumpshot";
   p.animPhase = 0;
-  p.actionLock = kind === "dunk" ? 0.6 : 0.5;
+  p.actionLock = kind === "dunk" ? 0.85 : 0.5;
   // jump on a jumpshot / dunk
   if (!p.airborne && kind !== "layup") {
     p.airborne = true;
-    p.jumpVel = (kind === "dunk" ? 1.3 : 1.0) * p.stats.jump * 3.8;
+    p.jumpVel = (kind === "dunk" ? 1.5 : 1.0) * p.stats.jump * 3.8;
+  }
+  if (kind === "dunk") {
+    p.dunkT = 0.85; // PlayerController flies the dunker to the rim & holds the slam
+    p.heading = Math.atan2(rim.x - p.pos.x, rim.z - p.pos.z);
   }
 
   g.events.push({ type: "shoot", team: p.team, data: { kind, dist, perfect } });

@@ -55,20 +55,20 @@ export function BallMesh({ sim }: { sim: Simulation }) {
     <>
       <group ref={g}>
         <mesh castShadow>
-          <sphereGeometry args={[BALL_RADIUS, 20, 20]} />
-          <meshStandardMaterial color="#e2682a" roughness={0.7} />
+          <sphereGeometry args={[BALL_RADIUS, 24, 24]} />
+          <meshStandardMaterial color="#ff7a2e" emissive="#ff5a1a" emissiveIntensity={0.4} roughness={0.55} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[BALL_RADIUS, 0.006, 6, 24]} />
-          <meshStandardMaterial color="#1a1a1a" />
+          <torusGeometry args={[BALL_RADIUS, 0.012, 8, 28]} />
+          <meshStandardMaterial color="#111111" />
         </mesh>
         <mesh>
-          <torusGeometry args={[BALL_RADIUS, 0.006, 6, 24]} />
-          <meshStandardMaterial color="#1a1a1a" />
+          <torusGeometry args={[BALL_RADIUS, 0.012, 8, 28]} />
+          <meshStandardMaterial color="#111111" />
         </mesh>
         <mesh rotation={[0, 0, Math.PI / 2]}>
-          <torusGeometry args={[BALL_RADIUS, 0.006, 6, 24]} />
-          <meshStandardMaterial color="#1a1a1a" />
+          <torusGeometry args={[BALL_RADIUS, 0.012, 8, 28]} />
+          <meshStandardMaterial color="#111111" />
         </mesh>
       </group>
 

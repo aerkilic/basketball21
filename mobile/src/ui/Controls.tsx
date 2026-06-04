@@ -26,17 +26,19 @@ export function Controls({ input, onBall }: { input: InputManager; onBall: boole
   const joyStart = useRef({ x: 0, y: 0 });
   const prev = useRef<Set<string>>(new Set());
 
-  const R = 56;
+  const R = 50;
   const zoneX = width * 0.45; // left of this = joystick zone
 
+  // compact cluster tucked into the bottom-right corner so the court stays visible
   const rX = width - insets.right;
+  const bY = height - insets.bottom;
   const buttons = [
-    { id: "D", cx: rX - 95, cy: height - 95, r: 50, color: "#ef4444", label: "D", sub: onBall ? "WURF" : "STEAL", size: 88 },
-    { id: "A", cx: rX - 100, cy: height - 215, r: 44, color: "#0ea5e9", label: "A", sub: onBall ? "SPRUNG" : "BLOCK", size: 74 },
-    { id: "S", cx: rX - 190, cy: height - 150, r: 44, color: "#22c55e", label: "S", sub: onBall ? "PASS" : "WECHSEL", size: 74 },
-    { id: "W", cx: rX - 270, cy: height - 110, r: 38, color: "#f59e0b", label: "W", sub: "SPRINT", size: 62 },
-    { id: "X", cx: rX - 270, cy: height - 188, r: 38, color: "#7c3aed", label: "X", sub: onBall ? "CROSS" : "—", size: 62 },
-    { id: "T", cx: rX - 355, cy: height - 150, r: 38, color: "#ec4899", label: "T", sub: onBall ? "TRICK" : "—", size: 62 },
+    { id: "D", cx: rX - 60, cy: bY - 62, r: 38, color: "#ef4444", label: "D", sub: onBall ? "WURF" : "STEAL", size: 64 },
+    { id: "A", cx: rX - 66, cy: bY - 142, r: 30, color: "#0ea5e9", label: "A", sub: onBall ? "SPRUNG" : "BLOCK", size: 52 },
+    { id: "S", cx: rX - 128, cy: bY - 80, r: 30, color: "#22c55e", label: "S", sub: onBall ? "PASS" : "WECHSEL", size: 52 },
+    { id: "W", cx: rX - 130, cy: bY - 152, r: 26, color: "#f59e0b", label: "W", sub: "SPRINT", size: 44 },
+    { id: "X", cx: rX - 184, cy: bY - 66, r: 26, color: "#7c3aed", label: "X", sub: onBall ? "CROSS" : "—", size: 44 },
+    { id: "T", cx: rX - 188, cy: bY - 138, r: 26, color: "#ec4899", label: "T", sub: onBall ? "TRICK" : "—", size: 44 },
   ];
 
   const recompute = (touches: Touch[]) => {
@@ -105,8 +107,8 @@ export function Controls({ input, onBall }: { input: InputManager; onBall: boole
       onTouchCancel={handle}
     >
       {/* joystick */}
-      <View style={[styles.jbase, { left: base.x - 72, top: base.y - 72, opacity: active ? 0.9 : 0.5 }]} />
-      <View style={[styles.jknob, { left: base.x - 34 + knob.x, top: base.y - 34 + knob.y, opacity: active ? 1 : 0.5 }]} />
+      <View style={[styles.jbase, { left: base.x - 62, top: base.y - 62, opacity: active ? 0.85 : 0.4 }]} />
+      <View style={[styles.jknob, { left: base.x - 30 + knob.x, top: base.y - 30 + knob.y, opacity: active ? 1 : 0.4 }]} />
 
       {/* buttons */}
       {buttons.map((b) => (
@@ -121,11 +123,11 @@ export function Controls({ input, onBall }: { input: InputManager; onBall: boole
               left: b.cx - b.size / 2,
               top: b.cy - b.size / 2,
               backgroundColor: b.color,
-              opacity: pressed[b.id] ? 0.6 : 1,
+              opacity: pressed[b.id] ? 0.55 : 0.82,
             },
           ]}
         >
-          <Text style={styles.label}>{b.label}</Text>
+          <Text style={[styles.label, { fontSize: Math.round(b.size * 0.36) }]}>{b.label}</Text>
           <Text style={styles.sub}>{b.sub}</Text>
         </View>
       ))}
@@ -136,18 +138,18 @@ export function Controls({ input, onBall }: { input: InputManager; onBall: boole
 const styles = StyleSheet.create({
   jbase: {
     position: "absolute",
-    width: 144,
-    height: 144,
-    borderRadius: 72,
+    width: 124,
+    height: 124,
+    borderRadius: 62,
     backgroundColor: "rgba(255,255,255,0.12)",
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.28)",
   },
   jknob: {
     position: "absolute",
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: "rgba(255,255,255,0.55)",
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.85)",
@@ -156,9 +158,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.5)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.55)",
   },
-  label: { color: "#fff", fontSize: 22, fontWeight: "900" },
-  sub: { color: "rgba(255,255,255,0.92)", fontSize: 9, fontWeight: "700", marginTop: 1 },
+  label: { color: "#fff", fontWeight: "900" },
+  sub: { color: "rgba(255,255,255,0.95)", fontSize: 8, fontWeight: "700", marginTop: 0 },
 });

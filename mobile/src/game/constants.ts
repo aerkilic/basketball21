@@ -23,7 +23,7 @@ export const HOOP = {
 // Ground point directly under the rim — used for shot-distance math.
 export const BASKET_GROUND: Vec3 = v3(HOOP.rim.x, 0, HOOP.rim.z);
 
-export const BALL_RADIUS = 0.122;
+export const BALL_RADIUS = 0.15; // slightly larger than life so it reads clearly
 export const THREE_POINT_DIST = 6.0; // street arc radius from basket
 export const PAINT_DIST = 1.9; // close range / dunk range
 

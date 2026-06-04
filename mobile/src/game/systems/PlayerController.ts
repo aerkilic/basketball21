@@ -1,7 +1,7 @@
 // PlayerController: integrates every player's movement, jump arc, body collisions,
 // facing and animation-state selection. Reads `intentX/intentZ` set by input/AI.
 import { GameState, Player } from "../types";
-import { GRAVITY, PLAYER_RADIUS } from "../constants";
+import { GRAVITY, PLAYER_RADIUS, HOOP } from "../constants";
 import { clamp, angleTowards } from "../math";
 import { clampToCourt } from "./helpers";
 
@@ -15,6 +15,28 @@ export function updatePlayers(g: GameState, dt: number) {
 }
 
 function integrate(g: GameState, p: Player, dt: number) {
+  // Dunk sequence: fly to the rim, rise, hang, then come down — overrides normal
+  // movement so the slam reads clearly.
+  if (p.dunkT > 0) {
+    p.dunkT = Math.max(0, p.dunkT - dt);
+    const phase = 1 - p.dunkT / 0.85;
+    const tx = HOOP.rim.x;
+    const tz = HOOP.rim.z + 0.55;
+    p.pos.x += (tx - p.pos.x) * Math.min(1, dt * 7);
+    p.pos.z += (tz - p.pos.z) * Math.min(1, dt * 7);
+    p.jumpY = Math.sin(Math.min(1, phase) * Math.PI) * 0.95;
+    p.airborne = true;
+    p.vel.x = 0;
+    p.vel.z = 0;
+    p.heading = Math.atan2(tx - p.pos.x, tz - p.pos.z);
+    if (p.dunkT === 0) {
+      p.airborne = false;
+      p.jumpY = 0;
+      p.anim = "idle";
+    }
+    return;
+  }
+
   // smooth actual velocity toward intent
   const a = p.stats.accel;
   p.vel.x += clamp(p.intentX - p.vel.x, -a * dt, a * dt);
