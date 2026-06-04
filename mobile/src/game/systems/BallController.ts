@@ -8,6 +8,7 @@ import {
   BALL_RESTITUTION,
   BALL_FRICTION,
   COURT,
+  SHOT_CLOCK,
 } from "../constants";
 import { playerById } from "../GameState";
 import { v3, distXZ } from "../math";
@@ -267,6 +268,7 @@ function updateLoose(g: GameState, dt: number) {
       const changed = g.possession !== grabber.team;
       g.possession = grabber.team;
       g.lastTouch = grabber.team;
+      g.shotClock = SHOT_CLOCK; // fresh clock on any rebound (offensive or defensive)
       if (changed) g.events.push({ type: "steal", team: grabber.team, data: { rebound: true } });
     }
   }

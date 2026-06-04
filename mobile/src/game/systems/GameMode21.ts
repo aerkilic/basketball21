@@ -1,7 +1,7 @@
 // GameMode21: scoring (2s and 3s), score- or time-mode win, possession flow,
 // fouls, phase machine.
 import { GameState, TeamId, Player } from "../types";
-import { HOOP, COURT } from "../constants";
+import { HOOP, COURT, PAINT_ZONE, THREE_SEC_LIMIT, SHOT_CLOCK } from "../constants";
 import { pushMessage } from "../GameState";
 import { v3, clamp } from "../math";
 
@@ -9,7 +9,55 @@ const other = (t: TeamId): TeamId => (t === "USER" ? "CPU" : "USER");
 
 export function updateGameMode(g: GameState, dt: number) {
   processScoreEvents(g);
+  updateThreeSeconds(g, dt);
+  updateShotClock(g, dt);
   advancePhase(g, dt);
+}
+
+// 24-second shot clock: the offense must get a shot off within SHOT_CLOCK seconds
+// of gaining possession or it's a turnover. The clock only ticks while the ball is
+// being handled (held/dribble); a shot attempt resets it, and possession changes
+// reset it elsewhere (resetToTop / inboundBall / Simulation).
+function updateShotClock(g: GameState, dt: number) {
+  // taking a shot counts as "coming to a finish" — refill so it can't expire mid-air
+  if (g.events.some((e) => e.type === "shoot" && !e.data?.fake)) {
+    g.shotClock = SHOT_CLOCK;
+    return;
+  }
+  if (g.phase !== "LIVE" || (g.ball.mode !== "held" && g.ball.mode !== "dribble")) return;
+  if (!Number.isFinite(g.shotClock)) g.shotClock = SHOT_CLOCK; // heal pre-update saves
+  g.shotClock = Math.max(0, g.shotClock - dt);
+  if (g.shotClock <= 0) shotClockViolation(g);
+}
+
+const inPaint = (p: Player): boolean =>
+  p.pos.x >= PAINT_ZONE.minX &&
+  p.pos.x <= PAINT_ZONE.maxX &&
+  p.pos.z >= PAINT_ZONE.minZ &&
+  p.pos.z <= PAINT_ZONE.maxZ;
+
+// 3-seconds-in-the-paint: ONLY the player currently holding the ball may not stay
+// in the red zone (key) for more than THREE_SEC_LIMIT seconds. The count runs only
+// while he is inside the zone and resets to 0 the moment he steps back out. Only
+// counts while the ball is actually being handled (held/dribble).
+function updateThreeSeconds(g: GameState, dt: number) {
+  const live = g.phase === "LIVE" && (g.ball.mode === "held" || g.ball.mode === "dribble");
+  for (const p of g.players) {
+    if (live && p.hasBall && inPaint(p)) {
+      const prev = p.paintTime;
+      p.paintTime += dt;
+      // warn once when crossing the 2s mark so the turnover isn't a surprise
+      if (prev < 2.0 && p.paintTime >= 2.0 && p.team === "USER") {
+        pushMessage(g, "RAUS AUS DER ZONE!", 1.0);
+      }
+      if (p.paintTime >= THREE_SEC_LIMIT) {
+        paintViolation(g, p);
+        return;
+      }
+    } else {
+      p.paintTime = 0; // not the ball handler, or out of the zone -> reset
+    }
+  }
 }
 
 function processScoreEvents(g: GameState) {
@@ -90,6 +138,7 @@ export function resetToTop(g: GameState, offense: TeamId) {
   g.phase = "LIVE";
   g.phaseTimer = 0;
   g.possession = offense;
+  g.shotClock = SHOT_CLOCK;
 
   const off = g.players.filter((p) => p.team === offense);
   const def = g.players.filter((p) => p.team !== offense);
@@ -112,6 +161,7 @@ export function resetToTop(g: GameState, offense: TeamId) {
     p.actionLock = 0;
     p.airborne = false;
     p.jumpY = 0;
+    p.paintTime = 0;
     p.anim = "idle";
     p.heading = Math.atan2(HOOP.rim.x - p.pos.x, HOOP.rim.z - p.pos.z);
   });
@@ -172,6 +222,38 @@ export function travelingViolation(g: GameState, p: Player) {
   pushMessage(g, "SCHRITTFEHLER!", 1.6);
 }
 
+// 24-second violation: offense never got a shot off -> turnover at the top.
+export function shotClockViolation(g: GameState) {
+  const offense = g.possession;
+  g.players.forEach((p) => {
+    if (p.team === offense) {
+      p.charging = false;
+      p.hasBall = false;
+      p.anim = "idle";
+    }
+    p.paintTime = 0;
+  });
+  g.possession = other(offense);
+  g.phase = "DEAD";
+  g.phaseTimer = 0;
+  g.shotClock = SHOT_CLOCK;
+  g.events.push({ type: "whistle" });
+  pushMessage(g, "24 SEKUNDEN!", 1.6);
+}
+
+// 3-seconds-in-the-paint: offensive player camped in the key -> turnover at the top.
+export function paintViolation(g: GameState, p: Player) {
+  p.charging = false;
+  p.hasBall = false;
+  p.anim = "idle";
+  g.players.forEach((q) => (q.paintTime = 0));
+  g.possession = other(p.team);
+  g.phase = "DEAD";
+  g.phaseTimer = 0;
+  g.events.push({ type: "whistle" });
+  pushMessage(g, "3 SEKUNDEN!", 1.6);
+}
+
 // Out of bounds: the team that didn't touch it last inbounds from behind the line
 // nearest the spot the ball left the court.
 export function inboundBall(g: GameState, x: number, z: number) {
@@ -179,6 +261,7 @@ export function inboundBall(g: GameState, x: number, z: number) {
   g.possession = team;
   g.phase = "LIVE";
   g.phaseTimer = 0;
+  g.shotClock = SHOT_CLOCK;
 
   const m = 0.5;
   const ix = clamp(x, -COURT.halfWidth + m, COURT.halfWidth - m);
@@ -208,6 +291,7 @@ export function inboundBall(g: GameState, x: number, z: number) {
     p.jumpY = 0;
     p.hasBall = false;
     p.carryDist = 0;
+    p.paintTime = 0;
     p.anim = "idle";
     p.heading = Math.atan2(HOOP.rim.x - p.pos.x, HOOP.rim.z - p.pos.z);
   });

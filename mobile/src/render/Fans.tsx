@@ -1,5 +1,6 @@
 // Fans: instanced crowd stands around the court in the home team's colours. They
-// bob constantly and jump on big moments (driven by the screen-shake "hype").
+// bob constantly, jump on big moments (screen-shake "hype"), and rise to their feet
+// to jeer when the opponent has the ball (crowdAgitation).
 import React, { useMemo, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -13,6 +14,8 @@ interface FanDef {
   phase: number;
   scale: number;
   shade: number; // brightness variation for the jersey colour
+  riseThreshold: number; // agitation level at which this fan stands up (staggers the wave)
+  stand: number; // smoothed 0..1 standing factor, mutated each frame
 }
 
 const SKIN = "#c89a6a";
@@ -34,6 +37,8 @@ export function Fans({ sim }: { sim: Simulation }) {
         phase: Math.random() * Math.PI * 2,
         scale: 0.85 + Math.random() * 0.3,
         shade: 0.75 + Math.random() * 0.5,
+        riseThreshold: 0.15 + Math.random() * 0.7, // some pop up early, some never quite
+        stand: 0,
       });
     for (let r = 0; r < 3; r++) {
       for (let x = -7; x <= 7; x += 1.4) add(x, COURT.zBack - 1.0 - r * 1.1);
@@ -78,10 +83,18 @@ export function Fans({ sim }: { sim: Simulation }) {
 
     const t = _.clock.elapsedTime;
     const hype = g.shake;
+    const agit = g.crowdAgitation || 0; // 0..1: opponent has the ball -> crowd on its feet
+    const lerp = Math.min(1, _dt * 4); // smoothing for the stand transition
     for (let i = 0; i < count; i++) {
       const f = fans[i];
-      const bob = Math.abs(Math.sin(t * 3 + f.phase)) * (0.05 + hype * 0.55);
-      const y = f.baseY + bob;
+      // each fan stands once agitation passes their personal threshold; the spread
+      // makes the crowd rise as a staggered wave rather than all at once
+      const wantStand = agit > f.riseThreshold ? 1 : 0;
+      f.stand += (wantStand - f.stand) * lerp;
+      // bob harder both on screen-shake hype and while standing/jeering
+      const bobAmp = 0.05 + hype * 0.55 + f.stand * 0.22;
+      const bob = Math.abs(Math.sin(t * (3 + f.stand * 2.5) + f.phase)) * bobAmp;
+      const y = f.baseY + f.stand * 0.3 + bob; // standing lifts the whole body up
       dummy.position.set(f.x, y, f.z);
       dummy.scale.setScalar(f.scale);
       dummy.updateMatrix();

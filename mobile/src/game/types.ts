@@ -47,6 +47,7 @@ export interface Player {
   shootHold: number; // how long D held while charging
   charging: boolean;
   carryDist: number; // distance travelled while gathered (traveling rule)
+  paintTime: number; // seconds spent in the paint while on offense (3-second rule)
   actionLock: number; // can't start new actions while > 0
   stealCooldown: number;
   blockCooldown: number;
@@ -140,11 +141,13 @@ export interface GameState {
   scoreTarget: number;
   timeLimit: number; // seconds (time mode)
   clock: number; // remaining seconds (time mode), counts down during LIVE
+  shotClock: number; // remaining seconds on the 24s shot clock (per possession)
   // team identity / home crowd
   userName: string;
   cpuName: string;
   homeIsUser: boolean; // home crowd supports USER when true
   crowdTimer: number; // internal cadence for crowd reactions
+  crowdAgitation: number; // 0..1 how riled the home crowd is (rises vs. opponent ball)
   possession: TeamId;
   players: Player[];
   ball: Ball;

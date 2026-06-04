@@ -1,5 +1,5 @@
 import { GameState, Player, Ball, TeamId } from "./types";
-import { ARCHETYPES, MatchConfig, PlayerKind } from "./constants";
+import { ARCHETYPES, MatchConfig, PlayerKind, SHOT_CLOCK } from "./constants";
 import { v3 } from "./math";
 
 let uid = 0;
@@ -40,6 +40,7 @@ function makePlayer(
     shootHold: 0,
     charging: false,
     carryDist: 0,
+    paintTime: 0,
     actionLock: 0,
     stealCooldown: 0,
     blockCooldown: 0,
@@ -93,10 +94,12 @@ export function createGameState(config: MatchConfig): GameState {
     scoreTarget: config.scoreTarget,
     timeLimit: config.timeLimit,
     clock: config.timeLimit,
+    shotClock: SHOT_CLOCK,
     userName: config.userName ?? "DU",
     cpuName: config.cpuName ?? "CPU",
     homeIsUser: config.homeIsUser ?? true,
     crowdTimer: 0,
+    crowdAgitation: 0,
     possession: "USER",
     players,
     ball,

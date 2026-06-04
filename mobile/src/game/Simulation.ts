@@ -1,7 +1,7 @@
 // Simulation: the single authoritative game-loop step. The render layer calls
 // step(dt) every frame; HUD-relevant state is read straight off GameState.
 import { GameState, InputFrame, Player } from "./types";
-import { MatchConfig, PAINT_DIST, SHOT, TRAVEL_DIST } from "./constants";
+import { MatchConfig, PAINT_DIST, SHOT, TRAVEL_DIST, SHOT_CLOCK } from "./constants";
 import { createGameState } from "./GameState";
 import { InputManager } from "./InputManager";
 import { userPlayer, ballHandler, distToBasket } from "./systems/helpers";
@@ -68,6 +68,8 @@ export class Simulation {
     // on a fresh turnover to defense, snap control to the defender nearest the ball
     const turnedToDefense = g.possession === "CPU" && this.prevPossession !== "CPU";
     assignControl(g, turnedToDefense);
+    // any change of possession (steal, rebound, turnover) gives a fresh shot clock
+    if (g.possession !== this.prevPossession) g.shotClock = SHOT_CLOCK;
 
     if (g.phase === "LIVE") {
       const me = userPlayer(g);

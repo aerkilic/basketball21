@@ -16,9 +16,12 @@ export class InputManager {
   private passEdge = false;
   private specialEdge = false;
   private trickEdge = false;
+  // shoot edges are latched on the transition itself, so a fast tap whose press
+  // AND release both land within one frame is never swallowed.
+  private shootDownEdge = false;
+  private shootUpEdge = false;
 
   // internal previous states for edge detection
-  private prevShoot = false;
   private prevJump = false;
 
   setMove(x: number, z: number) {
@@ -29,6 +32,8 @@ export class InputManager {
     this.sprint = on;
   }
   setShoot(on: boolean) {
+    if (on && !this.shootPressed) this.shootDownEdge = true;
+    else if (!on && this.shootPressed) this.shootUpEdge = true;
     this.shootPressed = on;
   }
   setJump(on: boolean) {
@@ -46,17 +51,15 @@ export class InputManager {
 
   // Called once per simulation step. Resolves edges and clears latches.
   consume(): InputFrame {
-    const shootDown = this.shootPressed && !this.prevShoot;
-    const shootUp = !this.shootPressed && this.prevShoot;
     const jumpEdge = this.jumpPressed && !this.prevJump;
 
     const frame: InputFrame = {
       moveX: this.moveX,
       moveZ: this.moveZ,
       sprint: this.sprint,
-      shootDown,
+      shootDown: this.shootDownEdge,
       shootHeld: this.shootPressed,
-      shootUp,
+      shootUp: this.shootUpEdge,
       pass: this.passEdge,
       jump: jumpEdge,
       jumpHeld: this.jumpPressed,
@@ -64,8 +67,9 @@ export class InputManager {
       trick: this.trickEdge,
     };
 
-    this.prevShoot = this.shootPressed;
     this.prevJump = this.jumpPressed;
+    this.shootDownEdge = false;
+    this.shootUpEdge = false;
     this.passEdge = false;
     this.specialEdge = false;
     this.trickEdge = false;
@@ -76,6 +80,7 @@ export class InputManager {
     this.moveX = this.moveZ = 0;
     this.sprint = this.shootPressed = this.jumpPressed = false;
     this.passEdge = this.specialEdge = this.trickEdge = false;
-    this.prevShoot = this.prevJump = false;
+    this.shootDownEdge = this.shootUpEdge = false;
+    this.prevJump = false;
   }
 }

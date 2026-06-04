@@ -23,20 +23,12 @@ export function updateCharge(p: Player, dt: number) {
   }
 }
 
-// Release the shot. Returns true if a real shot was launched (false = pump fake).
+// Release the shot. A quick tap just shoots with weaker timing; holding longer
+// charges toward the perfect-release window. Always fires a real shot.
 export function releaseShot(g: GameState, p: Player): boolean {
   if (!p.charging) return false;
   const hold = p.shootHold;
   p.charging = false;
-
-  if (hold < SHOT.fakeMaxHold) {
-    // pump fake — no ball release, brief lock; can shake a defender.
-    p.anim = "windup";
-    p.actionLock = 0.22;
-    g.events.push({ type: "shoot", team: p.team, data: { fake: true } });
-    return false;
-  }
-
   launchShot(g, p, hold);
   return true;
 }

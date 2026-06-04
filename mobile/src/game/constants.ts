@@ -27,6 +27,17 @@ export const BALL_RADIUS = 0.15; // slightly larger than life so it reads clearl
 export const THREE_POINT_DIST = 6.0; // street arc radius from basket
 export const PAINT_DIST = 1.9; // close range / dunk range
 
+// The painted key / lane (matches the rectangle drawn in Court.tsx). Used for the
+// offensive 3-seconds-in-the-paint rule.
+export const PAINT_ZONE = {
+  minX: -1.8,
+  maxX: 1.8,
+  minZ: HOOP.rim.z - 0.35, // baseline under the hoop
+  maxZ: HOOP.rim.z + 4.0, // free-throw line
+};
+export const THREE_SEC_LIMIT = 3.0; // seconds an offensive player may stay in the paint
+export const SHOT_CLOCK = 24; // seconds to get a shot off before a turnover
+
 export const TARGET_SCORE = 21;
 
 // ---- Player archetypes ----
@@ -114,7 +125,6 @@ export const SHOT = {
   minHold: 0.0,
   fullChargeTime: 0.55, // seconds to reach full power / ideal release
   perfectWindow: 0.12, // +/- around fullChargeTime that counts as "perfect"
-  fakeMaxHold: 0.16, // tap under this = pump fake, not a shot
   baseArc: 7.0, // flight time scaling helper
 };
 

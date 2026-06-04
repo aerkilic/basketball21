@@ -3,6 +3,7 @@ import React from "react";
 import { HOOP } from "../game/constants";
 import { Simulation } from "../game/Simulation";
 import { BasketNetAnimation } from "./BasketNetAnimation";
+import { ShotClock } from "./ShotClock";
 
 export function Hoop({ sim }: { sim: Simulation }) {
   const rim = HOOP.rim;
@@ -33,6 +34,9 @@ export function Hoop({ sim }: { sim: Simulation }) {
         <boxGeometry args={[0.6, 0.45, 0.01]} />
         <meshStandardMaterial color="#dc2626" wireframe />
       </mesh>
+
+      {/* 24-second shot clock on top of the backboard */}
+      <ShotClock sim={sim} />
 
       {/* rim + net live animation */}
       <BasketNetAnimation sim={sim} position={[rim.x, rim.y, rim.z]} />

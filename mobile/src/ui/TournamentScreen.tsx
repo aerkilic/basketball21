@@ -1,6 +1,6 @@
 // TournamentScreen: the career hub — group tables, knockout bracket, next match.
 import React from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from "react-native";
 import {
   Tournament,
   groupStandings,
@@ -28,6 +28,16 @@ export function TournamentScreen({
   const pad = useMenuInsets();
   const me = t.profile.teamId;
   const next = getPlayerFixture(t);
+
+  const confirmNew = () =>
+    Alert.alert(
+      "Neue Karriere?",
+      "Das aktuelle Turnier wird gelöscht und kann nicht wiederhergestellt werden.",
+      [
+        { text: "Abbrechen", style: "cancel" },
+        { text: "Neu starten", style: "destructive", onPress: onNewTournament },
+      ]
+    );
   const sf = t.knockouts.filter((f) => f.stage === "SF");
   const fin = t.knockouts.find((f) => f.stage === "FINAL");
 
@@ -112,6 +122,12 @@ export function TournamentScreen({
             ))}
             {fin && <KoLine f={fin} me={me} label="FINALE" />}
           </View>
+        )}
+
+        {t.phase !== "DONE" && (
+          <Pressable style={styles.newCareer} onPress={confirmNew}>
+            <Text style={styles.newCareerText}>↻ NEUE KARRIERE</Text>
+          </Pressable>
         )}
       </ScrollView>
     </View>
@@ -220,6 +236,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
+  newCareer: {
+    marginTop: 18,
+    alignSelf: "center",
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(248,113,113,0.6)",
+    backgroundColor: "rgba(248,113,113,0.12)",
+  },
+  newCareerText: { color: "#f87171", fontSize: 14, fontWeight: "900", letterSpacing: 1 },
   koRow: { flexDirection: "row", alignItems: "center", paddingVertical: 6, gap: 8 },
   koLabel: { color: "#9ca3af", fontSize: 11, fontWeight: "800", width: 52 },
   koTeam: { color: "#e5e7eb", fontSize: 14, fontWeight: "700", flex: 1, textAlign: "center" },

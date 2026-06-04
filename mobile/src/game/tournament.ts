@@ -285,7 +285,8 @@ export function matchConfigFor(t: Tournament, f: Fixture): MatchConfig {
     timeLimit: 600,
     userTeam: { players: me.players, jersey: me.color },
     cpuTeam: { players: opp.players, jersey: opp.color },
-    userName: me.city,
+    // show the player's nickname (with their club) on the scoreboard
+    userName: t.profile.nickname ? `${t.profile.nickname} · ${me.city}` : me.city,
     cpuName: opp.city,
     homeIsUser,
   };

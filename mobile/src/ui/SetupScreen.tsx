@@ -1,4 +1,4 @@
-// SetupScreen: pick mode (points/time), score/time amount, difficulty, fouls,
+// SetupScreen: pick mode (points/time), score/time amount, difficulty,
 // both teams (player selection) and jerseys, then start.
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
@@ -42,7 +42,6 @@ export function SetupScreen({
   const [score, setScore] = useState(DEFAULT_CONFIG.scoreTarget);
   const [minutes, setMinutes] = useState(10);
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_CONFIG.difficulty);
-  const [fouls, setFouls] = useState(DEFAULT_CONFIG.fouls);
   const [userTeam, setUserTeam] = useState(0);
   const [cpuTeam, setCpuTeam] = useState(3);
   const [userJersey, setUserJersey] = useState(DEFAULT_CONFIG.userTeam.jersey);
@@ -52,7 +51,7 @@ export function SetupScreen({
   const start = () => {
     const cfg: MatchConfig = {
       difficulty,
-      fouls,
+      fouls: true,
       mode,
       scoreTarget: mode === "score" ? score : 21,
       timeLimit: mode === "time" ? minutes * 60 : DEFAULT_CONFIG.timeLimit,
@@ -114,12 +113,6 @@ export function SetupScreen({
               onPress={() => setDifficulty(d)}
             />
           ))}
-        </View>
-
-        <Text style={styles.section}>Fouls</Text>
-        <View style={styles.row}>
-          <Chip label="AN" active={fouls} onPress={() => setFouls(true)} />
-          <Chip label="AUS" active={!fouls} onPress={() => setFouls(false)} />
         </View>
 
         <Text style={styles.section}>Dein Team</Text>
