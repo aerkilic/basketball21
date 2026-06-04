@@ -6,6 +6,9 @@ import { Simulation } from "../game/Simulation";
 import { BackdropKind } from "../game/constants";
 import { Scene, HudSnapshot } from "./Scene";
 
+const GAME_CAMERA_FOV = 56;
+const GAME_CAMERA_Z = 7.4;
+
 export function GameCanvas({
   sim,
   onHud,
@@ -27,7 +30,7 @@ export function GameCanvas({
     <Canvas
       shadows
       gl={{ antialias: true }}
-      camera={{ position: [0, 8.6, 6.8], fov: 52, near: 0.1, far: 200 }}
+      camera={{ position: [0, 8.6, GAME_CAMERA_Z], fov: GAME_CAMERA_FOV, near: 0.1, far: 200 }}
       onCreated={(state) => {
         state.gl.setClearColor(sky);
       }}

@@ -49,6 +49,9 @@ const EVENT_SFX: Partial<Record<GameEvent["type"], SfxName>> = {
   buzzer: "buzzer",
 };
 
+const CAMERA_BACK_OFFSET = 0.6;
+const OUTDOOR_CAMERA_TARGET_Y = 3.0;
+
 function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => void }) {
   const { camera } = useThree();
   const lastHud = useRef("");
@@ -82,12 +85,12 @@ function Stepper({ sim, onHud }: { sim: Simulation; onHud: (s: HudSnapshot) => v
 
     const desiredX = tx * 0.4 + sx;
     const desiredY = (outdoor ? 7.0 : 8.6) + sy;
-    const desiredZ = tz * 0.35 + (outdoor ? 8.0 : 6.8);
+    const desiredZ = tz * 0.35 + (outdoor ? 8.0 : 6.8) + CAMERA_BACK_OFFSET;
     camera.position.x += (desiredX - camera.position.x) * 0.08;
     camera.position.y += (desiredY - camera.position.y) * 0.08;
     camera.position.z += (desiredZ - camera.position.z) * 0.08;
 
-    const targetY = outdoor ? 4.0 : 1.2; // look higher outdoors to reveal the background
+    const targetY = outdoor ? OUTDOOR_CAMERA_TARGET_Y : 1.2;
     camTarget.current.set(
       camTarget.current.x + (tx * 0.7 - camTarget.current.x) * 0.08,
       camTarget.current.y + (targetY - camTarget.current.y) * 0.08,

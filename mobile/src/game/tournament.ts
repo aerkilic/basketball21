@@ -1,8 +1,7 @@
-// Tournament / career mode: a league of teams (chosen by the app language) is drawn
+// Tournament / career mode: a league of teams (chosen by the player) is drawn
 // randomly into two groups (A & B), single round-robin, top 2 of each advance to
 // cross semifinals + final. Points: win = 2, loss = 1; ties broken by basket
-// difference (scored − conceded), then baskets scored. Plus a persistent all-time
-// table across all tournaments.
+// difference (scored − conceded), then baskets scored.
 import { MatchConfig, PlayerKind, BackdropKind } from "./constants";
 
 export type GroupKey = "A" | "B";
@@ -75,7 +74,9 @@ export const LEAGUES: Record<string, League> = {
   uk: { id: "uk", teams: UKRAINIAN_TEAMS },
 };
 
-// language -> league (German is the default for en/uk/sr/de)
+export const LEAGUE_IDS = ["de", "tr", "sr", "uk"] as const;
+
+// language -> default league (German is the fallback for languages without a league)
 export function leagueForLang(lang: string): League {
   return LEAGUES[lang] ?? LEAGUES.de;
 }
@@ -120,18 +121,6 @@ export interface Tournament {
   fixtures: Fixture[]; // group stage
   knockouts: Fixture[]; // SF + final
   championId: string | null;
-  appliedToEternal: boolean;
-}
-
-export interface EternalRow {
-  teamId: string;
-  played: number;
-  won: number;
-  lost: number;
-  pf: number;
-  pa: number;
-  points: number;
-  titles: number;
 }
 
 // ---- helpers ----
@@ -208,7 +197,6 @@ export function createTournament(profile: Profile, leagueId: string): Tournament
     fixtures,
     knockouts: [],
     championId: null,
-    appliedToEternal: false,
   };
   skipPlayerByes(t); // if the player has a bye in round 1, auto-advance
   return t;
@@ -403,46 +391,4 @@ export function matchConfigFor(t: Tournament, f: Fixture): MatchConfig {
     cpuName: opp.city,
     homeIsUser,
   };
-}
-
-// ---- eternal table (all teams across all leagues) ----
-export function emptyEternal(): Record<string, EternalRow> {
-  const out: Record<string, EternalRow> = {};
-  for (const t of ALL_TEAMS)
-    out[t.id] = { teamId: t.id, played: 0, won: 0, lost: 0, pf: 0, pa: 0, points: 0, titles: 0 };
-  return out;
-}
-
-export function applyToEternal(
-  t: Tournament,
-  table: Record<string, EternalRow>
-): Record<string, EternalRow> {
-  const next = { ...table };
-  const ensure = (id: string) => {
-    if (!next[id]) next[id] = { teamId: id, played: 0, won: 0, lost: 0, pf: 0, pa: 0, points: 0, titles: 0 };
-  };
-  const all = [...t.fixtures, ...t.knockouts].filter((f) => f.played);
-  for (const f of all) {
-    ensure(f.home); ensure(f.away);
-    const h = next[f.home], a = next[f.away];
-    h.played++; a.played++;
-    h.pf += f.homeScore; h.pa += f.awayScore;
-    a.pf += f.awayScore; a.pa += f.homeScore;
-    if (f.homeScore > f.awayScore) {
-      h.won++; h.points += 2; a.lost++; a.points += 1;
-    } else {
-      a.won++; a.points += 2; h.lost++; h.points += 1;
-    }
-  }
-  if (t.championId) {
-    ensure(t.championId);
-    next[t.championId].titles++;
-  }
-  return next;
-}
-
-export function eternalSorted(table: Record<string, EternalRow>): EternalRow[] {
-  return Object.values(table).sort(
-    (x, y) => y.titles - x.titles || y.points - x.points || y.pf - y.pa - (x.pf - x.pa)
-  );
 }

@@ -56,14 +56,11 @@ Der **aktive Spieler** ist mit gelbem Ring + Pfeil markiert.
 - **Speichern/Laden:** im Pause-Menü speichern; auf der Startseite weiterspielen (`AsyncStorage`)
 
 ## Karriere / Turnier
-- **Profil:** Name + Nickname eingeben, einen von **8 Vereinen** wählen.
-- **2 Gruppen à 4** (doppelte Runde, Hin- und Rückspiel, Heim/Auswärts zufällig ausgelost):
-  - **Süd:** München, Stuttgart, Frankfurt, Nürnberg
-  - **Nord:** Hamburg, Berlin, Köln, Bremen
+- **Profil:** Nickname eingeben, Liga/Land wählen (**Deutschland**, **Türkei**, **Serbien**, **Ukraine**), dann Verein wählen.
+- Die Teams der gewählten Liga werden zufällig in **Gruppe A** und **Gruppe B** gelost; Heim/Auswärts wird zufällig ausgelost.
 - **Punkte:** Sieg = 2, Niederlage = 1. Die **ersten beiden** jeder Gruppe kommen weiter.
-- **Halbfinale** (je 1 Spiel): 1. Nord – 2. Süd und 2. Nord – 1. Süd. **Finale:** 1 Spiel.
+- **Halbfinale** (je 1 Spiel): 1. Gruppe A – 2. Gruppe B und 1. Gruppe B – 2. Gruppe A. **Finale:** 1 Spiel.
 - Du spielst die Partien deines Vereins selbst (3D), die übrigen werden simuliert.
-- **Ewige Tabelle:** über alle Turniere kumuliert, inkl. Titel — persistent gespeichert.
 - **Heimspiel-Atmosphäre:** Fans in Vereinsfarben, Jubel beim Heim-Team, **Pfiffe gegen den Gegner**, sobald dieser den Ball hat. Bei Treffern hüpfen die Fans.
 
 ## Spielertypen

@@ -1,7 +1,7 @@
 // ProfileScreen: enter a nickname and pick your club for a new tournament.
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from "react-native";
-import { Profile, leagueForLang } from "../game/tournament";
+import { Profile, LEAGUE_IDS, LEAGUES, leagueForLang } from "../game/tournament";
 import { useMenuInsets } from "./layout";
 import { useI18n } from "../i18n";
 
@@ -13,13 +13,19 @@ export function ProfileScreen({
   onBack: () => void;
 }) {
   const [nick, setNick] = useState("");
+  const { t, lang } = useI18n();
+  const [leagueId, setLeagueId] = useState(() => leagueForLang(lang).id);
   const [teamId, setTeamId] = useState<string | null>(null);
   const pad = useMenuInsets();
-  const { t, lang } = useI18n();
 
-  // team pool depends on the app language (e.g. Turkish clubs for Turkish)
-  const league = leagueForLang(lang);
+  const league = LEAGUES[leagueId] ?? leagueForLang(lang);
   const ready = nick.trim().length > 0 && teamId;
+
+  const selectLeague = (id: string) => {
+    if (id === leagueId) return;
+    setLeagueId(id);
+    setTeamId(null);
+  };
 
   return (
     <View style={styles.root}>
@@ -41,6 +47,21 @@ export function ProfileScreen({
           placeholderTextColor="#6b7280"
           maxLength={14}
         />
+
+        <Text style={styles.section}>{t("profile.league")}</Text>
+        <View style={styles.leagueRow}>
+          {LEAGUE_IDS.map((id) => (
+            <Pressable
+              key={id}
+              onPress={() => selectLeague(id)}
+              style={[styles.leagueChip, league.id === id && styles.leagueChipActive]}
+            >
+              <Text style={[styles.leagueChipText, league.id === id && styles.leagueChipTextActive]}>
+                {t(`league.${id}`)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
         <Text style={styles.section}>{t("profile.club")}</Text>
         <View style={styles.grid}>
@@ -87,6 +108,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   section: { color: "#fbbf24", fontSize: 13, fontWeight: "900", letterSpacing: 2, marginTop: 20 },
+  leagueRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  leagueChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  leagueChipActive: { backgroundColor: "#fbbf24", borderColor: "#fbbf24" },
+  leagueChipText: { color: "#e5e7eb", fontWeight: "800", fontSize: 13 },
+  leagueChipTextActive: { color: "#1a1206" },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
   team: {
     flexDirection: "row",

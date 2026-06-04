@@ -16,13 +16,11 @@ import { useI18n } from "../i18n";
 export function TournamentScreen({
   t,
   onPlayNext,
-  onShowEternal,
   onNewTournament,
   onExit,
 }: {
   t: Tournament;
   onPlayNext: () => void;
-  onShowEternal: () => void;
   onNewTournament: () => void;
   onExit: () => void;
 }) {
@@ -65,9 +63,7 @@ export function TournamentScreen({
             <Text style={styles.backText}>{tr("common.menu")}</Text>
           </Pressable>
           <Text style={styles.title}>{tr("tour.title")}</Text>
-          <Pressable onPress={onShowEternal} style={styles.back}>
-            <Text style={styles.backText}>{tr("tour.eternal")}</Text>
-          </Pressable>
+          <View style={styles.headerSpacer} />
         </View>
         <Text style={styles.you}>
           {t.profile.nickname} · {teamById(me).city}
@@ -186,6 +182,7 @@ const styles = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, backgroundColor: "#0b1018" },
   scroll: { paddingVertical: 20, paddingHorizontal: 18 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerSpacer: { width: 60 },
   back: { paddingVertical: 6 },
   backText: { color: "#93c5fd", fontSize: 14, fontWeight: "700" },
   title: { color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: 2 },

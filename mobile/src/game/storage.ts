@@ -1,12 +1,11 @@
-// Persistence: save / load an in-progress match, plus tournament + eternal table.
+// Persistence: save / load an in-progress match, plus tournament slots.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GameState } from "./types";
-import { Tournament, EternalRow, emptyEternal } from "./tournament";
+import { Tournament } from "./tournament";
 
 const KEY = "bb21_savegame_v1";
 const T_KEY = "bb21_tournament_v1"; // legacy single-tournament slot (migrated on load)
 const T_LIST_KEY = "bb21_tournaments_v2"; // up to MAX_TOURNAMENTS saved tournaments
-const E_KEY = "bb21_eternal_v1";
 
 export const MAX_TOURNAMENTS = 5;
 
@@ -112,23 +111,4 @@ export async function deleteTournament(id: string, current: Tournament[]): Promi
   const next = current.filter((x) => x.id !== id);
   await persist(next);
   return next;
-}
-
-// ---- eternal table ----
-export async function loadEternal(): Promise<Record<string, EternalRow>> {
-  try {
-    const raw = await AsyncStorage.getItem(E_KEY);
-    if (!raw) return emptyEternal();
-    const parsed = JSON.parse(raw) as Record<string, EternalRow>;
-    // merge with any newly added teams
-    return { ...emptyEternal(), ...parsed };
-  } catch {
-    return emptyEternal();
-  }
-}
-
-export async function saveEternal(table: Record<string, EternalRow>): Promise<void> {
-  try {
-    await AsyncStorage.setItem(E_KEY, JSON.stringify(table));
-  } catch {}
 }

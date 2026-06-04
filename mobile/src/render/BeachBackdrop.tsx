@@ -3,7 +3,7 @@
 import React from "react";
 import { COURT } from "../game/constants";
 
-const WATER_Z = -12; // where the sand meets the sea
+const WATER_Z = -10.8; // where the sand meets the sea
 const CASTLE_Z = -30;
 
 // ---- sandy beach the court sits on ----

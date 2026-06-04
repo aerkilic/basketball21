@@ -10,12 +10,10 @@ import { GameState } from "./src/game/types";
 import {
   Tournament,
   Profile,
-  EternalRow,
   createTournament,
   getPlayerFixture,
   matchConfigFor,
   recordResult,
-  applyToEternal,
 } from "./src/game/tournament";
 import { GameCanvas } from "./src/render/GameCanvas";
 import { HudSnapshot } from "./src/render/Scene";
@@ -28,8 +26,6 @@ import {
   SaveMeta,
   loadTournaments,
   upsertTournament,
-  loadEternal,
-  saveEternal,
 } from "./src/game/storage";
 import { Controls } from "./src/ui/Controls";
 import { Hud } from "./src/ui/Hud";
@@ -41,7 +37,6 @@ import { PauseButton, PauseMenu } from "./src/ui/PauseMenu";
 import { ProfileScreen } from "./src/ui/ProfileScreen";
 import { TournamentScreen } from "./src/ui/TournamentScreen";
 import { CareerHubScreen } from "./src/ui/CareerHubScreen";
-import { EternalTableScreen } from "./src/ui/EternalTableScreen";
 import { I18nProvider } from "./src/i18n";
 
 const EMPTY_HUD: HudSnapshot = {
@@ -69,8 +64,7 @@ type Screen =
   | "playing"
   | "careerHub"
   | "profile"
-  | "tournament"
-  | "eternal";
+  | "tournament";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("start");
@@ -80,7 +74,6 @@ export default function App() {
   const [saveMeta, setSaveMeta] = useState<SaveMeta | null>(null);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [tour, setTour] = useState<Tournament | null>(null); // the one being played
-  const [eternal, setEternal] = useState<Record<string, EternalRow>>({});
   const [backdrop, setBackdrop] = useState<BackdropKind>("classic");
 
   const simRef = useRef<Simulation | null>(null);
@@ -94,7 +87,6 @@ export default function App() {
 
   useEffect(() => {
     refreshMeta();
-    loadEternal().then(setEternal);
     loadTournaments().then(setTournaments);
   }, [refreshMeta]);
 
@@ -182,18 +174,12 @@ export default function App() {
     const sim = simRef.current;
     if (!sim || !tour) return;
     recordResult(tour, sim.state.score.USER, sim.state.score.CPU);
-    if (tour.phase === "DONE" && !tour.appliedToEternal) {
-      const updated = applyToEternal(tour, eternal);
-      tour.appliedToEternal = true;
-      setEternal(updated);
-      saveEternal(updated);
-    }
     const list = await upsertTournament(tour, tournaments); // persist progress
     setTournaments(list);
     setTour({ ...tour });
     inTournamentRef.current = false;
     setScreen("tournament");
-  }, [tour, tournaments, eternal]);
+  }, [tour, tournaments]);
 
   // "new tournament" from inside the hub or a finished tournament -> profile setup
   const newTournament = useCallback(() => {
@@ -271,16 +257,8 @@ export default function App() {
         <TournamentScreen
           t={tour}
           onPlayNext={playNextFixture}
-          onShowEternal={() => setScreen("eternal")}
           onNewTournament={newTournament}
           onExit={() => setScreen("careerHub")}
-        />
-      )}
-
-      {screen === "eternal" && (
-        <EternalTableScreen
-          table={eternal}
-          onBack={() => setScreen(tour ? "tournament" : "careerHub")}
         />
       )}
 
