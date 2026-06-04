@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from "react-native";
 import { TEAMS, Profile } from "../game/tournament";
+import { LEFT_MARGIN } from "./layout";
 
 export function ProfileScreen({
   onStart,
@@ -33,7 +34,7 @@ export function ProfileScreen({
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingLeft: LEFT_MARGIN }]}>
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.back}>
             <Text style={styles.backText}>‹ Zurück</Text>

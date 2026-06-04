@@ -10,6 +10,7 @@ import {
   Fixture,
   GroupKey,
 } from "../game/tournament";
+import { LEFT_MARGIN } from "./layout";
 
 export function TournamentScreen({
   t,
@@ -50,7 +51,7 @@ export function TournamentScreen({
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingLeft: LEFT_MARGIN }]}>
         <View style={styles.header}>
           <Pressable onPress={onExit} style={styles.back}>
             <Text style={styles.backText}>‹ Menü</Text>

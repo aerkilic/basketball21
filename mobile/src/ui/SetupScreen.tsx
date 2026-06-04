@@ -12,6 +12,7 @@ import {
   TIME_OPTIONS,
   TEAM_PRESETS,
 } from "../game/constants";
+import { LEFT_MARGIN } from "./layout";
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -62,7 +63,7 @@ export function SetupScreen({
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingLeft: LEFT_MARGIN }]}>
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.back}>
             <Text style={styles.backText}>‹ Zurück</Text>

@@ -1,8 +1,9 @@
 // ActionButtons: right-side diamond (A/S/W/D) + a dedicated X (crossover) button.
-// Meaning adapts to offense/defense; labels reflect both roles.
-// D and W use press-and-hold; A/S/X are taps.
-import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+// Built on react-native-gesture-handler so taps register reliably even while the
+// left thumb is dragging the joystick (true multitouch — fixes "no pass while moving").
+import React, { useMemo, useRef, useState } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import { InputManager } from "../game/InputManager";
 
 interface Props {
@@ -25,41 +26,59 @@ function Btn({
   onOut?: () => void;
   size?: number;
 }) {
+  const [pressed, setPressed] = useState(false);
+  const inRef = useRef(onIn);
+  const outRef = useRef(onOut);
+  inRef.current = onIn;
+  outRef.current = onOut;
+
+  // LongPress with zero min duration fires immediately on touch-down and is
+  // independent of the RN responder system, so it co-exists with the joystick.
+  const gesture = useMemo(
+    () =>
+      Gesture.LongPress()
+        .minDuration(0)
+        .maxDistance(10000)
+        .shouldCancelWhenOutside(false)
+        .onBegin(() => {
+          setPressed(true);
+          inRef.current();
+        })
+        .onFinalize(() => {
+          setPressed(false);
+          outRef.current?.();
+        }),
+    []
+  );
+
   return (
-    <Pressable
-      onPressIn={onIn}
-      onPressOut={onOut}
-      hitSlop={6}
-      style={({ pressed }) => [
-        styles.btn,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          opacity: pressed ? 0.65 : 1,
-          transform: [{ scale: pressed ? 0.94 : 1 }],
-        },
-      ]}
-    >
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.sub}>{sub}</Text>
-    </Pressable>
+    <GestureDetector gesture={gesture}>
+      <View
+        style={[
+          styles.btn,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: color,
+            opacity: pressed ? 0.65 : 1,
+            transform: [{ scale: pressed ? 0.94 : 1 }],
+          },
+        ]}
+      >
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.sub}>{sub}</Text>
+      </View>
+    </GestureDetector>
   );
 }
 
 export function ActionButtons({ input, onBall }: Props) {
   return (
     <View style={styles.wrap}>
-      {/* dedicated crossover button */}
+      {/* dedicated crossover + sprint column */}
       <View style={styles.crossCol}>
-        <Btn
-          label="X"
-          sub={onBall ? "CROSS" : "—"}
-          color="#7c3aed"
-          size={60}
-          onIn={() => input.pressSpecial()}
-        />
+        <Btn label="X" sub={onBall ? "CROSS" : "—"} color="#7c3aed" size={60} onIn={() => input.pressSpecial()} />
         <Btn
           label="W"
           sub="SPRINT"
