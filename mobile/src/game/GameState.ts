@@ -44,6 +44,7 @@ function makePlayer(
     stealCooldown: 0,
     blockCooldown: 0,
     crossoverT: 0,
+    dunkT: 0,
     aiTimer: 0,
     aiTargetX: x,
     aiTargetZ: z,

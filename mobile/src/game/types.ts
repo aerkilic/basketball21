@@ -51,6 +51,7 @@ export interface Player {
   stealCooldown: number;
   blockCooldown: number;
   crossoverT: number; // remaining crossover anim time
+  dunkT: number; // remaining dunk sequence time (fly to rim + slam)
 
   // AI scratch
   aiTimer: number;
