@@ -112,9 +112,9 @@ export function Fans({ sim, backdrop = "classic" }: { sim: Simulation; backdrop?
     const cl = cloths.current;
     if (!b || !h || !hr) return;
 
-    // shirts + flags always use YOUR team's colour — your fans fill the stands
-    // (players[0]/[1] are the USER team). Novi Pazar -> green, München -> red, etc.
-    const fanColor = g.players[0].jersey;
+    // shirts + flags use the HOME team's colour (home crowd). At your home games
+    // that's your team; at away games it's the opponent's.
+    const fanColor = g.homeIsUser ? g.players[0].jersey : g.players[2].jersey;
     const base = new THREE.Color(fanColor);
     if (fanColor !== lastColor.current) {
       lastColor.current = fanColor;

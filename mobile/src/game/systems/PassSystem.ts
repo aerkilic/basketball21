@@ -28,16 +28,24 @@ export function passToTeammate(g: GameState, passer: Player): boolean {
   return true;
 }
 
-// Switch the human-controlled defender to the other USER player (defense only).
+// Switch the human-controlled defender. Picks the USER player nearest the ball so
+// you take over the one who can actually contest; if you already control that one,
+// it hands over to the other (so the button always does something).
 export function switchActivePlayer(g: GameState): boolean {
   const userPlayers = g.players.filter((p) => p.team === "USER");
   const current = userPlayers.find((p) => p.isUserControlled);
-  const other = userPlayers.find((p) => !p.isUserControlled);
-  if (!current || !other) return false;
-  current.isUserControlled = false;
-  current.isActive = false;
-  other.isUserControlled = true;
-  other.isActive = true;
+  const others = userPlayers.filter((p) => !p.isUserControlled);
+  if (!current || others.length === 0) return false;
+
+  const nearest = userPlayers.reduce((a, b) =>
+    distXZ(b.pos, g.ball.pos) < distXZ(a.pos, g.ball.pos) ? b : a
+  );
+  const target = nearest !== current ? nearest : others[0];
+
+  userPlayers.forEach((p) => {
+    p.isUserControlled = p === target;
+    p.isActive = p === target;
+  });
   g.events.push({ type: "switch", team: "USER" });
   pushMessage(g, "msg.switch", 0.8);
   return true;

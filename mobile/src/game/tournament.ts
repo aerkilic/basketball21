@@ -502,11 +502,13 @@ export function matchConfigFor(t: Tournament, f: Fixture): MatchConfig {
   const me = teamById(meId);
   const oppId = f.home === meId ? f.away : f.home;
   const opp = teamById(oppId);
+  // the fixture decides home/away: the team listed first (f.home) is the home side
   const homeIsUser = f.home === meId;
   const rules = tournamentRules(t);
   return {
     difficulty: "NORMAL",
     fouls: true,
+    // venue is the home team's city
     backdrop: backdropForTeam(f.home),
     mode: rules.mode,
     scoreTarget: rules.scoreTarget,

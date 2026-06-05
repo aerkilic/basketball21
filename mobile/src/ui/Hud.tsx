@@ -50,6 +50,13 @@ function Score({ value, color }: { value: number; color: string }) {
 export function Hud({ hud, foulsEnabled }: { hud: HudSnapshot; foulsEnabled: boolean }) {
   const userBall = hud.possession === "USER";
   const { t } = useI18n();
+
+  // scoreboard order: HOME team on the left, AWAY team on the right
+  const user = { name: hud.userName, score: hud.scoreUser, color: hud.userColor, ball: userBall, fouls: hud.foulUser };
+  const cpu = { name: hud.cpuName, score: hud.scoreCpu, color: hud.cpuColor, ball: !userBall, fouls: hud.foulCpu };
+  const home = hud.homeIsUser ? user : cpu;
+  const away = hud.homeIsUser ? cpu : user;
+
   return (
     <View pointerEvents="none" style={styles.root}>
       <View style={styles.topRow}>
@@ -63,13 +70,10 @@ export function Hud({ hud, foulsEnabled }: { hud: HudSnapshot; foulsEnabled: boo
         </View>
 
         <View style={styles.board}>
-          <View style={[styles.team, userBall && styles.has]}>
-            <Text style={styles.teamName}>
-              {hud.userName}
-              {hud.homeIsUser ? " 🏠" : ""}
-            </Text>
-            <Score value={hud.scoreUser} color={hud.userColor} />
-            {userBall && <Text style={styles.dot}>●</Text>}
+          <View style={[styles.team, home.ball && styles.has]}>
+            <Text style={styles.teamName}>{home.name} 🏠</Text>
+            <Score value={home.score} color={home.color} />
+            {home.ball && <Text style={styles.dot}>●</Text>}
           </View>
           <View style={styles.middle}>
             {hud.mode === "time" ? (
@@ -78,16 +82,13 @@ export function Hud({ hud, foulsEnabled }: { hud: HudSnapshot; foulsEnabled: boo
               <Text style={styles.target}>{t("hud.target", { n: hud.scoreTarget })}</Text>
             )}
             {foulsEnabled && (
-              <Text style={styles.fouls}>{t("hud.fouls", { a: hud.foulUser, b: hud.foulCpu })}</Text>
+              <Text style={styles.fouls}>{t("hud.fouls", { a: home.fouls, b: away.fouls })}</Text>
             )}
           </View>
-          <View style={[styles.team, !userBall && styles.has]}>
-            {!userBall && <Text style={styles.dot}>●</Text>}
-            <Score value={hud.scoreCpu} color={hud.cpuColor} />
-            <Text style={styles.teamName}>
-              {hud.cpuName}
-              {!hud.homeIsUser ? " 🏠" : ""}
-            </Text>
+          <View style={[styles.team, away.ball && styles.has]}>
+            {away.ball && <Text style={styles.dot}>●</Text>}
+            <Score value={away.score} color={away.color} />
+            <Text style={styles.teamName}>{away.name}</Text>
           </View>
         </View>
 

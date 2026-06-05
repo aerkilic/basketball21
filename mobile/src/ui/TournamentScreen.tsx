@@ -109,6 +109,7 @@ export function TournamentScreen({
                 : stageTitle(t.phase)}
             </Text>
             <View style={styles.nextRow}>
+              {/* home team (named first) on the left, away on the right */}
               <Text style={[styles.nextTeam, next.home === me && styles.nextMine]}>
                 {teamById(next.home).city}
               </Text>
